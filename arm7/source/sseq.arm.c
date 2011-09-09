@@ -300,6 +300,12 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 
 	if (*seqData != 0xFE) return;
 	int i, pos = 3;
+	ADSR_mastervolume = 127;	//Some tracks alter this, and may cause undesireable effects with playing other tracks later.
+	
+	/* Clear track-channel assignations */
+	for (i = 0; i < 16; i ++)
+		_NoteStop(i);
+	
 	for (i = 1, ntracks = 1;; i ++, ntracks ++)
 	{
 		if (SEQ_READ8(pos) != 0x93) break; pos += 2;
@@ -401,6 +407,9 @@ void seq_updatepitchbend(int track, playinfo_t* info)
 
 void track_tick(int n)
 {
+#ifdef SNDSYS_DEBUG
+	returnMsg msg;
+#endif
 	trackstat_t* track = tracks + n;
 
 	if (track->count)
@@ -419,6 +428,9 @@ void track_tick(int n)
 		char buf[64];
 		siprintf(buf, "%02X-%08X-%X", cmd, (int)(seqData + oldpos), oldpos);
 		nocashMessage(buf);
+#endif
+#ifdef SNDSYS_DEBUG
+		msg.count = 0;
 #endif
 		if (cmd < 0x80)
 		{
@@ -518,7 +530,13 @@ void track_tick(int n)
 #ifdef LOG_SEQ
 				nocashMessage("DUMMY1");
 #endif
+#ifdef SNDSYS_DEBUG
+				msg.count=2;
+				msg.data[0] = cmd;
+				msg.data[1] = SEQ_READ8(track->pos); track->pos++;
+#else
 				track->pos ++;
+#endif
 				break;
 			}
 			case 0xC4: // PITCH BEND
@@ -628,7 +646,14 @@ void track_tick(int n)
 #ifdef LOG_SEQ
 				nocashMessage("DUMMY2");
 #endif
+#ifdef SNDSYS_DEBUG
+				msg.count=3;
+				msg.data[0] = 0xE3;
+				msg.data[1] = SEQ_READ8(track->pos); track->pos++;
+				msg.data[2] = SEQ_READ8(track->pos); track->pos++;
+#else
 				track->pos += 2;
+#endif
 				break;
 			}
 			case 0xE1: // TEMPO
@@ -648,5 +673,9 @@ void track_tick(int n)
 				return;
 			}
 		}
+#ifdef SNDSYS_DEBUG
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
+		
 	}
 }
