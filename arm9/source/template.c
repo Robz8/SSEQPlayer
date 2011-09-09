@@ -339,10 +339,11 @@ int IsValidSPS(char *SPS)
 void ReadDIR()
 {
 	FileCount = 0;
+	u32 InvalidSPS = 0;
 	DIR *pdir;
 	struct dirent *pent;
 	struct stat statbuf;
-	char *SPSPath;
+	char *SPSPath=NULL;
 
 	pdir = opendir("/data/NDS Music Player/");
 	if (pdir)
@@ -371,10 +372,24 @@ void ReadDIR()
 				strcpy(DIRList[FileCount], pent -> d_name);
 				FileCount++;
 			}
+			else
+			{
+				InvalidSPS = 1;
+			}
 			//}
 		}
 		closedir(pdir);
 		FileCount--;
+		if(InvalidSPS)
+		{
+			iprintf("At least one SPS no longer has\nIts matching rom FILE\nPlease Run SPS Maker Again.\n\nPress B to continue");
+			swiWaitForVBlank();
+			while(!(keysDown() & KEY_B))
+			{
+				scanKeys();
+				swiWaitForVBlank();
+			}
+		}
 	}
 	else
 	{
@@ -392,7 +407,7 @@ void ShowDIR()
 	
 	if(DIRList[0] == NULL)
 	{
-		return true;
+		return;
 	}
 
 	for(i = CurrentFile; i < CurrentFile + 23; i++)

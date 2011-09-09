@@ -7,7 +7,7 @@ endif
 
 include $(DEVKITARM)/ds_rules
 
-export TARGET		:=	$(shell basename $(CURDIR))
+export TARGET		:=	NDS_Music_Player
 export TOPDIR		:=	$(CURDIR)
 export FILESYSTEM	:=	$(CURDIR)/fs
 

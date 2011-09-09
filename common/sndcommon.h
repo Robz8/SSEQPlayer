@@ -116,6 +116,7 @@ int CnvSust(int sust);
 int PlaySmp(sndreg_t* smp, int a, int d, int s, int r, int vol, int vel, int pan);
 void StopSmp(int handle);
 */
+void PlaySeqNDS(const char* ndsFile, const u32 SSEQOffset, const u32 SSEQSize, const u32 BANKOffset, const u32 BANKSize, const u32 WAVEARC1Offset, const u32 WAVEARC1Size, const u32 WAVEARC2Offset, const u32 WAVEARC2Size, const u32 WAVEARC3Offset, const u32 WAVEARC3Size, const u32 WAVEARC4Offset, const u32 WAVEARC4Size);
 void PlaySeq(const char*, const char*, const char*, const char*, const char*, const char*);
 void StopSeq();
 
