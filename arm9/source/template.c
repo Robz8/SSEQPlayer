@@ -433,6 +433,11 @@ void ReadSPS()
 	consoleClear();
 
 	FILE* f = fopen(CurrentSPS, "rb");
+	if(!f)
+	{
+		iprintf("%s failed to open\n",CurrentSPS);
+		return;
+	}
 
 	fseek(f, 0x0C, SEEK_SET);
 	iprintf("Reading NDS path length.\n");
@@ -559,6 +564,11 @@ void ReadSSEQ()
 
 	//Opens file
 	FILE* f = fopen(CurrentSPS, "rb");
+	if(!f)
+	{
+		iprintf("%s failed to open\n",CurrentSPS);
+		return;
+	}
 
 	//Reads SSEQDataOffset
 	fseek(f, 0x08, SEEK_SET);
