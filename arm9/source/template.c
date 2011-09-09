@@ -85,9 +85,10 @@ int main()
 						free(CurrentSPS);
 					}
 					
-					CurrentSPS = malloc(23 + strlen(DIRList[CurrentFile]));
+					CurrentSPS = malloc(23 + strlen(DIRList[CurrentFile])+1);
 					strcpy(CurrentSPS, "/data/NDS Music Player/");
 					strcat(CurrentSPS, DIRList[CurrentFile]);
+					CurrentSPS[23 + strlen(DIRList[CurrentFile])]=0;
 						
 					ReadSPS();
 				}
