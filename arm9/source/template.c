@@ -12,7 +12,6 @@ void ShowDIR();
 void ReadSPS();
 void ShowSSEQ();
 void ReadSSEQ();
-int CheckRam();
 
 char* DIRList[5000];
 char* CurrentNDS;
@@ -607,35 +606,6 @@ void ShowSSEQ()
 	}
 }
 
-int CheckRam()
-{
-	u8 *data=NULL;
-	return 3800000;
-	data=malloc(1);
-	data[0]=1;
-	data[0+(4*1024*1024)]=2;	//4MiB from current location, for mirror checking.
-	if(data[0] == 2)
-	{
-		//Running on a retail DS/DSLite/DSi in DS mode.
-		free(data);
-		return 3800000;
-	}
-	else
-	{
-		//We are running on a debug unit, or a DSi.  Time to check which.
-		data[0+(8*1024*1024)]=3;
-		free(data);
-		if(data[0] == 3)
-		{
-			return 3800000 + 4194304;	//Debug Unit.
-		}
-		else
-		{
-			return 3800000 + 12582912; //DSi in DSi mode.
-		}
-	}
-}
-
 void ReadSSEQ()
 {
 	//Clears screen
@@ -724,11 +694,11 @@ void ReadSSEQ()
 	{
 		
 		
-		if((SSEQSize + BANKSize + WAVEARC1Size + WAVEARC2Size + WAVEARC3Size + WAVEARC4Size) > CheckRam())
+		if((SSEQSize + BANKSize + WAVEARC1Size + WAVEARC2Size + WAVEARC3Size + WAVEARC4Size) > 3800000)
 		{
 			iprintf("%s is not currently playable.\n", SSEQList[CurrentSSEQ]);
 			iprintf("Data size exceeds Ram size\n");
-			iprintf("Available Ram = %d\n",CheckRam());
+			iprintf("Available Ram = 3800000\n");
 			iprintf("Data size = %d\n",(SSEQSize + BANKSize + WAVEARC1Size + WAVEARC2Size + WAVEARC3Size + WAVEARC4Size));
 			while(!(keysDown() & KEY_B))
 			{
