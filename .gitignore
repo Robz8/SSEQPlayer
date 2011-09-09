@@ -6,3 +6,7 @@
 *.sseq
 *.sbnk
 *.swar
+*.exe
+*.pdb
+*.manifest
+*/obj
