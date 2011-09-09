@@ -305,6 +305,55 @@ int main()
 				}
 			}
 		}
+
+                if (keysDown() & KEY_L)
+                {
+                  if (PlayMode)
+                  {
+                    if(CurrentSSEQ > 0)
+                    {
+                      CurrentSSEQ--;
+                    }
+                    else
+                    {
+                      CurrentSSEQ = SSEQCount - 1;
+                    }
+
+                    while(SSEQList[CurrentSSEQ][0] == '<')
+                    {
+                      CurrentSSEQ--;
+                      if(CurrentSSEQ > SSEQCount)
+                      {
+                        CurrentSSEQ = SSEQCount - 1;
+                      }
+                    }
+                    ReadSSEQ();
+                  }
+                }
+
+                if (keysDown() & KEY_R)
+                {
+                  if (PlayMode)
+                  {
+                    if(CurrentSSEQ < SSEQCount - 1)
+                    {
+                      CurrentSSEQ++;
+                    }
+                    else
+                    {
+                      CurrentSSEQ = 0;
+                    }
+                    while(SSEQList[CurrentSSEQ][0] == '<')
+                    {
+                      CurrentSSEQ++;
+                      if(CurrentSSEQ > SSEQCount - 1)
+                      {
+                        CurrentSSEQ = 0;
+                      }
+                    }
+                    ReadSSEQ();
+                  }
+                }
 	}
 }
 
