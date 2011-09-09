@@ -1,0 +1,27 @@
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\bin\Release\SPS Maker.exe
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\bin\Release\SPS Maker.pdb
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\obj\x86\Release\ResolveAssemblyReference.cache
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\obj\x86\Release\SPS_Maker.Form1.resources
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\obj\x86\Release\SPS_Maker.Properties.Resources.resources
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\obj\x86\Release\GenerateResource.read.1.tlog
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\obj\x86\Release\GenerateResource.write.1.tlog
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\obj\x86\Release\SPS Maker.exe
+C:\Users\Kazo\AppData\Local\Temporary Projects\SPS Maker\obj\x86\Release\SPS Maker.pdb
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Release\SPS Maker.exe
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Release\SPS Maker.pdb
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\bin\Release\SPS Maker.exe
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\bin\Release\SPS Maker.pdb
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Release\ResolveAssemblyReference.cache
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Release\SPS_Maker.Form1.resources
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Release\SPS_Maker.Properties.Resources.resources
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Release\GenerateResource.read.1.tlog
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Release\GenerateResource.write.1.tlog
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\obj\x86\Release\SPS Maker.exe
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\obj\x86\Release\SPS Maker.pdb
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\obj\x86\Release\ResolveAssemblyReference.cache
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\obj\x86\Release\SPS_Maker.Form1.resources
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\obj\x86\Release\SPS_Maker.Properties.Resources.resources
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\obj\x86\Release\GenerateResource.read.1.tlog
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\obj\x86\Release\GenerateResource.write.1.tlog
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\bin\Release\SPS Maker.exe
+C:\Documents and Settings\CaitSith\Desktop\NDS_Music_Player_1.0\SPS Maker_src\SPS Maker\bin\Release\SPS Maker.pdb

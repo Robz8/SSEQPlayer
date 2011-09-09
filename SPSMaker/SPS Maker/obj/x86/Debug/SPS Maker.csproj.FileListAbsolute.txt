@@ -1,0 +1,9 @@
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\bin\Debug\SPS Maker.exe
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\bin\Debug\SPS Maker.pdb
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Debug\SPS_Maker.Form1.resources
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Debug\SPS_Maker.Properties.Resources.resources
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Debug\SPS Maker.exe
+C:\Users\Kazo\documents\visual studio 2010\Projects\SPS Maker\SPS Maker\obj\x86\Debug\SPS Maker.pdb
