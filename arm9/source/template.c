@@ -610,6 +610,7 @@ void ShowSSEQ()
 int CheckRam()
 {
 	u8 *data=NULL;
+	return 3800000;
 	data=malloc(1);
 	data[0]=1;
 	data[0+(4*1024*1024)]=2;	//4MiB from current location, for mirror checking.
