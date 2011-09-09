@@ -337,10 +337,17 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 
 void StopSeq()
 {
-	ntracks = 0, seq_bpm = 0;
-	int i;
-	for (i = 0; i < 16; i ++)
-		_NoteStop(i);
+	seq_bpm=0; //stop sound_timer
+	//v=0;
+
+	int i=0;
+	for(; i < 16; i++){ //stop Note
+		ADSR_stat_t* chstat = ADSR_ch + i;
+		chstat->state=ADSR_NONE;
+		chstat->count = 0;
+		chstat->track = -1;
+		SCHANNEL_CR(i) = 0;
+	}
 }
 
 volatile int seq_bpm = 0;
