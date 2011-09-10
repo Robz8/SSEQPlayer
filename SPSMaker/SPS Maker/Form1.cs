@@ -78,7 +78,11 @@ namespace SPS_Maker
 
                         if (System.Text.Encoding.UTF8.GetString(HeaderBytes) == "SDAT")
                         {
-                            SDATCount++;
+                            br.Read(HeaderBytes, 0, 4);
+                            if (BitConverter.ToUInt32(HeaderBytes, 0) == 0x0100FEFF)
+                            {
+                                SDATCount++;    //Prevent any false positives.  SDAT always begins with "SDAT",0xFF,0xFE,0x00,0x01.
+                            }
                         }
                         FAT.Position += 4;
                     }
