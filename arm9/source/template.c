@@ -28,6 +28,7 @@ u32 CurrentSSEQ;
 u32 SSEQNameOffset;
 u32 SSEQDataOffset;
 char* SSEQList[5000];
+u32 SSEQListOffset[5000];
 
 bool SSEQMode = false;
 bool PlayMode = false;
@@ -140,14 +141,14 @@ int main()
 						CurrentSSEQ = SSEQCount - 1;
 					}
 
-					while(SSEQList[CurrentSSEQ][0] == '<')
+					/*while(SSEQList[CurrentSSEQ][0] == '<')
 					{
 						CurrentSSEQ--;
 						if(CurrentSSEQ > SSEQCount)
 						{
 							CurrentSSEQ = SSEQCount - 1;
 						}
-					}
+					}*/
 					ShowSSEQ();
 				}
 				else
@@ -182,14 +183,14 @@ int main()
 					{
 						CurrentSSEQ = 0;
 					}
-					while(SSEQList[CurrentSSEQ][0] == '<')
+					/*while(SSEQList[CurrentSSEQ][0] == '<')
 					{
 						CurrentSSEQ++;
 						if(CurrentSSEQ > SSEQCount - 1)
 						{
 							CurrentSSEQ = 0;
 						}
-					}
+					}*/
 					ShowSSEQ();
 				}
 				else
@@ -223,23 +224,23 @@ int main()
 					else
 					{
 						CurrentSSEQ = 0;
-						while(SSEQList[CurrentSSEQ][0] == '<')
+						/*while(SSEQList[CurrentSSEQ][0] == '<')
 						{
 							CurrentSSEQ++;
 							if(CurrentSSEQ < 0)
 							{
 								CurrentSSEQ = 0;
 							}
-						}
+						}*/
 					}
-					while(SSEQList[CurrentSSEQ][0] == '<')
+					/*while(SSEQList[CurrentSSEQ][0] == '<')
 					{
 						CurrentSSEQ--;
 						if(CurrentSSEQ < 0)
 						{
 							CurrentSSEQ = SSEQCount - 1;
 						}
-					}
+					}*/
 					ShowSSEQ();
 				}
 				else
@@ -273,23 +274,23 @@ int main()
 					else
 					{
 						CurrentSSEQ = SSEQCount - 1;
-						while(SSEQList[CurrentSSEQ][0] == '<')
+						/*while(SSEQList[CurrentSSEQ][0] == '<')
 						{
 							CurrentSSEQ--;
 							if(CurrentSSEQ > SSEQCount - 1)
 							{
 								CurrentSSEQ = SSEQCount - 1;;
 							}
-						}
+						}*/
 					}
-					while(SSEQList[CurrentSSEQ][0] == '<')
+					/*while(SSEQList[CurrentSSEQ][0] == '<')
 					{
 						CurrentSSEQ++;
 						if(CurrentSSEQ > SSEQCount - 1)
 						{
 							CurrentSSEQ = 0;
 						}
-					}
+					}*/
 					ShowSSEQ();
 				}
 				else
@@ -320,14 +321,14 @@ int main()
                       CurrentSSEQ = SSEQCount - 1;
                     }
 
-                    while(SSEQList[CurrentSSEQ][0] == '<')
+                    /*while(SSEQList[CurrentSSEQ][0] == '<')
                     {
                       CurrentSSEQ--;
                       if(CurrentSSEQ > SSEQCount)
                       {
                         CurrentSSEQ = SSEQCount - 1;
                       }
-                    }
+                    }*/
                     ReadSSEQ();
                   }
                 }
@@ -344,14 +345,14 @@ int main()
                     {
                       CurrentSSEQ = 0;
                     }
-                    while(SSEQList[CurrentSSEQ][0] == '<')
+                    /*while(SSEQList[CurrentSSEQ][0] == '<')
                     {
                       CurrentSSEQ++;
                       if(CurrentSSEQ > SSEQCount - 1)
                       {
                         CurrentSSEQ = 0;
                       }
-                    }
+                    }*/
                     ReadSSEQ();
                   }
                 }
@@ -481,7 +482,9 @@ void ShowDIR()
 void ReadSPS()
 {
 	consoleClear();
-
+	
+	u32 j;
+	
 	FILE* f = fopen(CurrentSPS, "rb");
 	if(!f)
 	{
@@ -542,12 +545,31 @@ void ReadSPS()
 	iprintf("Reading SSEQ name offset.\n");
 	swiWaitForVBlank();
 	fread(&SSEQNameOffset, 1, 4, f);
+	fread(&SSEQDataOffset, 1, 4, f);
 
 	fseek(f, SSEQNameOffset, SEEK_SET);
 
 	//Reads all SSEQ names into the char**
-	for (i = 0; i < SSEQCount; i++)
+	for (i = 0, j = 0; (i + j) < SSEQCount; i++)
 	{
+		SSEQNameOffset = ftell(f);
+		fseek(f, SSEQDataOffset + ((i+j) * 48), SEEK_SET);
+		fread(&SSEQOffset, 1, 4, f);
+		fseek(f, SSEQNameOffset, SEEK_SET);
+		if(SSEQOffset == 0)
+		{
+			i--;
+			j++;
+			CharCount = fgetc(f);
+			while(CharCount>0)
+			{
+				CharCount--;
+				fgetc(f);
+			}
+			continue;
+			
+		}
+		SSEQListOffset[i] = i+j;
 		if (SSEQList[i] != NULL)
 		{
 			free(SSEQList[i]);
@@ -560,6 +582,7 @@ void ReadSPS()
 		fread(SSEQList[i], 1, CharCount, f);
 		SSEQList[i][CharCount] = 0;
 	}
+	SSEQCount=i;
 
 	CurrentSSEQ = 0;
 	SSEQMode = true;
@@ -623,68 +646,68 @@ void ReadSSEQ()
 	//Reads SSEQDataOffset
 	fseek(f, 0x08, SEEK_SET);
 	iprintf("Reading SSEQ data offset.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&SSEQDataOffset, 1, 4, f);
 
 	//Reads SSEQ offset
-	fseek(f, SSEQDataOffset + (CurrentSSEQ * 48), SEEK_SET);
+	fseek(f, SSEQDataOffset + (SSEQListOffset[CurrentSSEQ] * 48), SEEK_SET);
 	iprintf("Reading SSEQ offset.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&SSEQOffset, 1, 4, f);
 
 	//Reads SSEQ size
 	iprintf("Reading SSEQ size.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&SSEQSize, 1, 4, f);
 
 	//Reads BANK offset
 	iprintf("Reading BANK offset.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&BANKOffset, 1, 4, f);
 
 	//Reads BANK size
 	iprintf("Reading BANK size.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&BANKSize, 1, 4, f);
 
 	//Reads WAVEARC1 offset
 	iprintf("Reading WAVEARC1 offset.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&WAVEARC1Offset, 1, 4, f);
 
 	//Reads WAVEARC1 size
 	iprintf("Reading WAVEARC1 size.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&WAVEARC1Size, 1, 4, f);
 
 	//Reads WAVEARC2 offset
 	iprintf("Reading WAVEARC2 offset.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&WAVEARC2Offset, 1, 4, f);
 
 	//Reads WAVEARC2 size
 	iprintf("Reading WAVEARC2 size.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&WAVEARC2Size, 1, 4, f);
 
 	//Reads WAVEARC3 offset
 	iprintf("Reading WAVEARC3 offset.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&WAVEARC3Offset, 1, 4, f);
 
 	//Reads WAVEARC3 size
 	iprintf("Reading WAVEARC3 size.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&WAVEARC3Size, 1, 4, f);
 
 	//Reads WAVEARC4 offset
 	iprintf("Reading WAVEARC4 offset.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&WAVEARC4Offset, 1, 4, f);
 
 	//Reads WAVEARC4 size
 	iprintf("Reading WAVEARC4 size.\n");
-	swiWaitForVBlank();
+	//swiWaitForVBlank();
 	fread(&WAVEARC4Size, 1, 4, f);
 
 	//Closes file
@@ -721,7 +744,7 @@ void ReadSSEQ()
 			PlaySeqNDS(CurrentNDS, SSEQOffset, SSEQSize, BANKOffset, BANKSize, WAVEARC1Offset, WAVEARC1Size, WAVEARC2Offset, WAVEARC2Size, WAVEARC3Offset, WAVEARC3Size, WAVEARC4Offset, WAVEARC4Size);
 			
 			iprintf("Playing %s.\n", SSEQList[CurrentSSEQ]);
-			swiWaitForVBlank();
+			//swiWaitForVBlank();
 			PlayMode = true;
 			SSEQMode = false;
 		}
