@@ -8,6 +8,8 @@ static void sndsysMsgHandler(int, void*);
 static void returnMsgHandler(int, void*);
 #endif
 sndsysMsg curr_seq;
+u32 curr_seq_offset[6] = {0,0,0,0,0,0};
+u32 curr_seq_size[6] = {0,0,0,0,0,0};	//To save reloading stuff that is already loaded.
 
 void InstallSoundSys()
 {
@@ -143,37 +145,103 @@ void StopSeq()
 void PlaySeqNDS(const char* ndsFile, const u32 SSEQOffset, const u32 SSEQSize, const u32 BANKOffset, const u32 BANKSize, const u32 WAVEARC1Offset, const u32 WAVEARC1Size, const u32 WAVEARC2Offset, const u32 WAVEARC2Size, const u32 WAVEARC3Offset, const u32 WAVEARC3Size, const u32 WAVEARC4Offset, const u32 WAVEARC4Size)
 {
 	StopSeq();
-	free_seq();
+	swiWaitForVBlank();
+	swiWaitForVBlank();
+	//free_seq();
 	curr_seq.msg = SNDSYS_PLAYSEQ;
 
-	iprintf("Loading SSEQ.\n");
-	LoadNDS(&curr_seq.seq, ndsFile, SSEQOffset, SSEQSize);
-
-	iprintf("Loading BANK.\n");
-	LoadNDS(&curr_seq.bnk, ndsFile, BANKOffset, BANKSize);
-
-	if(WAVEARC1Offset != 0)
+	if((SSEQOffset==curr_seq_offset[0])&&(SSEQSize==curr_seq_size[0]))
 	{
-		iprintf("Loading WAVEARC1.\n");
-		LoadNDS(curr_seq.war + 0, ndsFile, WAVEARC1Offset, WAVEARC1Size);
+		iprintf("SSEQ Already Loaded.\n");
+	}
+	else
+	{
+		free_pdata(&curr_seq.seq);
+		curr_seq_offset[0]=SSEQOffset;
+		curr_seq_size[0]=SSEQSize;
+		iprintf("Loading SSEQ.\n");
+		LoadNDS(&curr_seq.seq, ndsFile, SSEQOffset, SSEQSize);
+	}
+
+	if((BANKOffset==curr_seq_offset[1])&&(BANKSize==curr_seq_size[1]))
+	{
+		iprintf("BANK Already Loaded.\n");
+	}
+	else
+	{
+		free_pdata(&curr_seq.bnk);
+		curr_seq_offset[1]=BANKOffset;
+		curr_seq_size[1]=BANKSize;
+		iprintf("Loading BANK.\n");
+		LoadNDS(&curr_seq.bnk, ndsFile, BANKOffset, BANKSize);
+	}
+
+	if((WAVEARC1Offset==curr_seq_offset[2])&&(WAVEARC1Size==curr_seq_size[2]))
+	{
+		if(WAVEARC1Offset != 0)
+			iprintf("WAVEARC1 Already Loaded\n");
+	}
+	else
+	{
+		free_pdata(curr_seq.war + 0);
+		curr_seq_offset[2]=WAVEARC1Offset;
+		curr_seq_size[2]=WAVEARC1Size;
+		if(WAVEARC1Offset != 0)
+		{
+			iprintf("Loading WAVEARC1.\n");
+			LoadNDS(curr_seq.war + 0, ndsFile, WAVEARC1Offset, WAVEARC1Size);
+		}
 	}
 	
-	if(WAVEARC2Offset != 0)
+	if((WAVEARC2Offset==curr_seq_offset[3])&&(WAVEARC2Size==curr_seq_size[3]))
 	{
-		iprintf("Loading WAVEARC2.\n");
-		LoadNDS(curr_seq.war + 1, ndsFile, WAVEARC2Offset, WAVEARC2Size);
+		if(WAVEARC2Offset != 0)
+			iprintf("WAVEARC2 Already Loaded\n");
+	}
+	else
+	{
+		free_pdata(curr_seq.war + 1);
+		curr_seq_offset[3]=WAVEARC2Offset;
+		curr_seq_size[3]=WAVEARC2Size;
+		if(WAVEARC2Offset != 0)
+		{
+			iprintf("Loading WAVEARC2.\n");
+			LoadNDS(curr_seq.war + 1, ndsFile, WAVEARC2Offset, WAVEARC2Size);
+		}
 	}
 
-	if(WAVEARC3Offset != 0)
+	if((WAVEARC3Offset==curr_seq_offset[4])&&(WAVEARC3Size==curr_seq_size[4]))
 	{
-		iprintf("Loading WAVEARC3.\n");
-		LoadNDS(curr_seq.war + 2, ndsFile, WAVEARC3Offset, WAVEARC3Size);
+		if(WAVEARC3Offset != 0)
+			iprintf("WAVEARC3 Already Loaded\n");
+	}
+	else
+	{
+		free_pdata(curr_seq.war + 2);
+		curr_seq_offset[4]=WAVEARC3Offset;
+		curr_seq_size[4]=WAVEARC3Size;
+		if(WAVEARC3Offset != 0)
+		{
+			iprintf("Loading WAVEARC3.\n");
+			LoadNDS(curr_seq.war + 2, ndsFile, WAVEARC3Offset, WAVEARC3Size);
+		}
 	}
 
-	if(WAVEARC4Offset != 0)
+	if((WAVEARC4Offset==curr_seq_offset[5])&&(WAVEARC4Size==curr_seq_size[5]))
 	{
-		iprintf("Loading WAVEARC4.\n");
-		LoadNDS(curr_seq.war + 3, ndsFile, WAVEARC4Offset, WAVEARC4Size);
+		if(WAVEARC4Offset != 0)
+			iprintf("WAVEARC4 Already Loaded\n");
+	}
+	else
+	{
+		free_pdata(curr_seq.war + 3);
+		curr_seq_offset[5]=WAVEARC4Offset;
+		curr_seq_size[5]=WAVEARC4Size;
+		if(WAVEARC4Offset != 0)
+		{
+			iprintf("Loading WAVEARC4.\n");
+			LoadNDS(curr_seq.war + 3, ndsFile, WAVEARC4Offset, WAVEARC4Size);
+		}
 	}
 
 	fifoSendDatamsg(FIFO_SNDSYS, sizeof(curr_seq), (u8*) &curr_seq);

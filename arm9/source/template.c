@@ -70,7 +70,7 @@ int main()
 		{
 			if(PlayMode)
 			{
-
+				fifoSendDatamsg(FIFO_SNDSYS, sizeof(curr_seq), (u8*) &curr_seq);	//User may have stopped current sequence.
 			}
 			else
 			{
