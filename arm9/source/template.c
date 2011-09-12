@@ -22,6 +22,13 @@ u32 FileCount;
 u32 CurrentFile;
 u32 i;
 
+u32 scrollpos=0;
+u32 scrollposcounter=0;
+u32 scrollposmax=0;
+u32 scrollposdirection=0;
+u32 LastFile;
+u32 LastSSEQ;
+
 u32 SSEQCount;
 u32 CharCount;
 u32 CurrentSSEQ;
@@ -46,11 +53,14 @@ u32 WAVEARC2Size;
 u32 WAVEARC3Size;
 u32 WAVEARC4Size;
 
-int main()
+int argc;
+char **argv;
+int main(int _argc, char **_argv)
 {
 	consoleDemoInit();
 	InstallSoundSys();
-	
+
+	argc=_argc; argv=_argv;
 	if(!fatInitDefault())
 	{
 		iprintf("Filesystem FAIL");
@@ -62,10 +72,71 @@ int main()
 	ReadDIR();
 	ShowDIR();
 
+	CurrentSPS=malloc(768);
+	if(readFrontend(CurrentSPS)){
+		ReadSPS();
+	}else{
+		free(CurrentSPS);
+		CurrentSPS=NULL;
+	}
+
 	for(;;)
 	{
+		if(CurrentSSEQ != LastSSEQ)
+		{
+			LastSSEQ = CurrentSSEQ;
+			scrollpos = 0;
+			scrollposcounter = 10;
+		}
+		if(CurrentFile != LastFile)
+		{
+			LastFile = CurrentFile;
+			scrollpos = 0;
+			scrollposcounter = 10;
+		}
+		
+		if(scrollposcounter==0)
+		{
+			scrollposcounter=10;
+			if(!scrollposdirection)
+			{
+				//RIGHT
+				if(scrollpos<scrollposmax)
+				{
+					scrollpos++;
+				}
+				else
+				{
+					scrollposdirection = 1;
+					scrollposcounter = 120;
+				}
+			}
+			else
+			{
+				//LEFT
+				if(scrollpos>0)
+				{
+					scrollpos--;
+				}
+				else
+				{
+					scrollposdirection = 0;
+					scrollposcounter = 120;
+				}
+			}
+		}
+		else
+		{
+			scrollposcounter--;
+		}
+		if(!PlayMode)
+		{
+			if(SSEQMode)
+				ShowSSEQ();
+			else
+				ShowDIR();
+		}
 		swiWaitForVBlank();
-
 		scanKeys();
 		if (keysDown() & KEY_A)
 		{
@@ -140,15 +211,6 @@ int main()
 					{
 						CurrentSSEQ = SSEQCount - 1;
 					}
-
-					/*while(SSEQList[CurrentSSEQ][0] == '<')
-					{
-						CurrentSSEQ--;
-						if(CurrentSSEQ > SSEQCount)
-						{
-							CurrentSSEQ = SSEQCount - 1;
-						}
-					}*/
 					ShowSSEQ();
 				}
 				else
@@ -183,14 +245,6 @@ int main()
 					{
 						CurrentSSEQ = 0;
 					}
-					/*while(SSEQList[CurrentSSEQ][0] == '<')
-					{
-						CurrentSSEQ++;
-						if(CurrentSSEQ > SSEQCount - 1)
-						{
-							CurrentSSEQ = 0;
-						}
-					}*/
 					ShowSSEQ();
 				}
 				else
@@ -224,23 +278,7 @@ int main()
 					else
 					{
 						CurrentSSEQ = 0;
-						/*while(SSEQList[CurrentSSEQ][0] == '<')
-						{
-							CurrentSSEQ++;
-							if(CurrentSSEQ < 0)
-							{
-								CurrentSSEQ = 0;
-							}
-						}*/
 					}
-					/*while(SSEQList[CurrentSSEQ][0] == '<')
-					{
-						CurrentSSEQ--;
-						if(CurrentSSEQ < 0)
-						{
-							CurrentSSEQ = SSEQCount - 1;
-						}
-					}*/
 					ShowSSEQ();
 				}
 				else
@@ -274,23 +312,7 @@ int main()
 					else
 					{
 						CurrentSSEQ = SSEQCount - 1;
-						/*while(SSEQList[CurrentSSEQ][0] == '<')
-						{
-							CurrentSSEQ--;
-							if(CurrentSSEQ > SSEQCount - 1)
-							{
-								CurrentSSEQ = SSEQCount - 1;;
-							}
-						}*/
 					}
-					/*while(SSEQList[CurrentSSEQ][0] == '<')
-					{
-						CurrentSSEQ++;
-						if(CurrentSSEQ > SSEQCount - 1)
-						{
-							CurrentSSEQ = 0;
-						}
-					}*/
 					ShowSSEQ();
 				}
 				else
@@ -320,15 +342,6 @@ int main()
                     {
                       CurrentSSEQ = SSEQCount - 1;
                     }
-
-                    /*while(SSEQList[CurrentSSEQ][0] == '<')
-                    {
-                      CurrentSSEQ--;
-                      if(CurrentSSEQ > SSEQCount)
-                      {
-                        CurrentSSEQ = SSEQCount - 1;
-                      }
-                    }*/
                     ReadSSEQ();
                   }
                 }
@@ -345,14 +358,6 @@ int main()
                     {
                       CurrentSSEQ = 0;
                     }
-                    /*while(SSEQList[CurrentSSEQ][0] == '<')
-                    {
-                      CurrentSSEQ++;
-                      if(CurrentSSEQ > SSEQCount - 1)
-                      {
-                        CurrentSSEQ = 0;
-                      }
-                    }*/
                     ReadSSEQ();
                   }
                 }
@@ -455,6 +460,7 @@ void ReadDIR()
 void ShowDIR()
 {
 	consoleClear();
+	u32 temp;
 	
 	if(DIRList[0] == NULL)
 	{
@@ -463,19 +469,36 @@ void ShowDIR()
 
 	for(i = CurrentFile; i < CurrentFile + 23; i++)
 	{
+		temp = 0;
 		if (i > FileCount)
 		{
 			break;
 		}
 		if(i == CurrentFile)
 		{
+			temp = scrollpos;
+			if(strlen(DIRList[i])<0x1F)
+				scrollposmax = 0;
+			else
+				scrollposmax = strlen(DIRList[i])-0x1F;
 			CurrentFileSTR = "*";
 		}
 		else
 		{
 			CurrentFileSTR = " ";
 		}
-		iprintf("%s%s\n", CurrentFileSTR, DIRList[i]);
+		//Prints text on screen
+		if(strlen(DIRList[i])<0x1F)
+		{
+			iprintf("%s%s\n", CurrentFileSTR, DIRList[i]);
+		}
+		else
+		{
+			char SSEQStr[0x20];
+			memcpy(SSEQStr,&DIRList[i][temp],0x1F);
+			SSEQStr[0x1F]=0;
+			iprintf("%s%s", CurrentFileSTR, SSEQStr);
+		}
 	}
 }
 
@@ -595,10 +618,12 @@ void ShowSSEQ()
 {
 	//Clears screen
 	consoleClear();	
+	u32 temp;
 
 	//displays the current SSEQ and up to 22 more files after it
 	for(i = CurrentSSEQ; i < CurrentSSEQ + 23; i++)
 	{
+		temp = 0;
 		//stops list short if CurrentSSEQ + 23 is over SSEQCount
 		if (i >= SSEQCount)
 		{
@@ -608,6 +633,11 @@ void ShowSSEQ()
 		//adds a * infront of the selected file
 		if(i == CurrentSSEQ)
 		{
+			temp = scrollpos;
+			if(strlen(SSEQList[i])<0x1F)
+				scrollposmax = 0;
+			else
+				scrollposmax = strlen(SSEQList[i]) - 0x1F;
 			CurrentFileSTR = "*";
 		}
 		else
@@ -623,7 +653,7 @@ void ShowSSEQ()
 		else
 		{
 			char SSEQStr[0x20];
-			memcpy(SSEQStr,SSEQList[i],0x1F);
+			memcpy(SSEQStr,&SSEQList[i][temp],0x1F);
 			SSEQStr[0x1F]=0;
 			iprintf("%s%s", CurrentFileSTR, SSEQStr);
 		}
