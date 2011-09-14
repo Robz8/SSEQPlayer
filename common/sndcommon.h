@@ -51,8 +51,9 @@ typedef struct
 #ifdef SNDSYS_DEBUG
 typedef struct
 {
-	int count;
-	u8 data[3];
+	u8 count;
+	u8 data[4];
+	u8 channel;
 } returnMsg;
 #endif
 

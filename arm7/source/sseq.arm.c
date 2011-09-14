@@ -178,6 +178,7 @@ typedef struct
 	playinfo_t playinfo;
 	int a,d,s,r;
 	int loopcount,looppos;
+	int track_ended;
 } trackstat_t;
 
 int ntracks = 0;
@@ -188,6 +189,10 @@ trackstat_t tracks[16];
 
 int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* playinfo, int duration, int track)
 {
+#ifdef SNDSYS_DEBUG
+	returnMsg msg;
+	msg.channel = track;
+#endif	
 	int isPsg = 0;
 	int ch = ds_freechn2(prio);
 	if (ch < 0) return -1;
@@ -199,7 +204,15 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 	notedef_t* notedef = NULL;
 	SWAVINFO* wavinfo = NULL;
 	int fRecord = INST_TYPE(inst);
-	if (fRecord == 0) return -1;
+	if (fRecord == 0) {
+#ifdef SNDSYS_DEBUG
+		msg.count=2;
+		msg.data[0] = 0;
+		msg.data[1] = fRecord;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
+		return -1;
+	}
 	else if (fRecord == 1) notedef = (notedef_t*) insdata;
 	else if (fRecord < 4)
 	{
@@ -242,7 +255,16 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 			if (note <= insdata[reg]) break;
 		if (reg == 8) return -1;
 		notedef = (notedef_t*) (insdata + 8 + 2 + reg*(2+sizeof(notedef_t)));
-	}else return -1;
+	}else 
+	{
+#ifdef SNDSYS_DEBUG
+		msg.count=2;
+		msg.data[0] = 0;
+		msg.data[1] = fRecord;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
+		return -1;
+	}
 
 	if (!isPsg)
 	{
@@ -288,6 +310,9 @@ void _NoteStop(int n)
 
 void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 {
+#ifdef SNDSYS_DEBUG
+	returnMsg msg;
+#endif
 	seqBnk = bnk->data;
 	seqWar[0] = war[0].data;
 	seqWar[1] = war[1].data;
@@ -298,7 +323,15 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 	seqData = (u8*)seq->data + ((u32*)seq->data)[6];
 	ntracks = 0;
 
-	if (*seqData != 0xFE) return;
+	if (*seqData != 0xFE) {
+#ifdef SNDSYS_DEBUG
+		msg.count=1;
+		msg.data[0] = 0x01;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
+		return;
+	}
+	
 	int i, pos = 3;
 	ADSR_mastervolume = 127;	//Some tracks alter this, and may cause undesireable effects with playing other tracks later.
 	
@@ -438,6 +471,7 @@ void track_tick(int n)
 #endif
 #ifdef SNDSYS_DEBUG
 		msg.count = 0;
+		msg.channel = n;
 #endif
 		if (cmd < 0x80)
 		{
@@ -474,6 +508,10 @@ void track_tick(int n)
 			{
 #ifdef LOG_SEQ
 				nocashMessage("JUMP");
+#endif
+#ifdef SNDSYS_DEBUG
+				msg.count=1;
+				msg.data[0] = cmd;
 #endif
 				track->pos = SEQ_READ24(track->pos);
 				break;
@@ -619,6 +657,11 @@ void track_tick(int n)
 #ifdef LOG_SEQ
 				nocashMessage("LOOP START");
 #endif
+#ifdef SNDSYS_DEBUG
+				msg.count=2;
+				msg.data[0] = cmd;
+				msg.data[1] = SEQ_READ8(track->pos);
+#endif
 				track->loopcount = SEQ_READ8(track->pos); track->pos ++;
 				track->looppos = track->pos;
 				if(!track->loopcount)
@@ -629,6 +672,10 @@ void track_tick(int n)
 			{
 #ifdef LOG_SEQ
 				nocashMessage("LOOP END");
+#endif
+#ifdef SNDSYS_DEBUG
+				msg.count=1;
+				msg.data[0] = cmd;
 #endif
 				int shouldRepeat = 1;
 				if (track->loopcount > 0)
@@ -655,7 +702,7 @@ void track_tick(int n)
 #endif
 #ifdef SNDSYS_DEBUG
 				msg.count=3;
-				msg.data[0] = 0xE3;
+				msg.data[0] = cmd;
 				msg.data[1] = SEQ_READ8(track->pos); track->pos++;
 				msg.data[2] = SEQ_READ8(track->pos); track->pos++;
 #else
@@ -676,12 +723,33 @@ void track_tick(int n)
 #ifdef LOG_SEQ
 				nocashMessage("END");
 #endif
+#ifdef SNDSYS_DEBUG
+				if(!track->track_ended)
+				{
+					msg.count=1;
+					msg.data[0] = cmd;
+					fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+				}
+#endif
+				track->track_ended = 1;
 				track->pos --;
 				return;
 			}
+			default:
+			{
+#ifdef SNDSYS_DEBUG
+				msg.count=3;
+				msg.data[0] = cmd;
+				msg.data[1] = SEQ_READ8(track->pos);
+				msg.data[2] = SEQ_READ8(track->pos+1);
+				msg.data[3] = SEQ_READ8(track->pos+2);
+#endif
+				break;
+			}
 		}
 #ifdef SNDSYS_DEBUG
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+		if(msg.count)
+			fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
 		
 	}

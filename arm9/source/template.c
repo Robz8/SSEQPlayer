@@ -13,14 +13,21 @@ void ReadSPS();
 void ShowSSEQ();
 void ReadSSEQ();
 
+#ifdef SNDSYS_DEBUG
+extern volatile u8 message_data[];
+extern volatile u32 message_pointer;
+#endif
+
 char* DIRList[5000];
 char* CurrentNDS;
 char* CurrentSPS;
 char* CurrentFileSTR;
 
+u32 Max_RAM = 3800000;
+
 u32 FileCount;
 u32 CurrentFile;
-u32 i;
+u32 i,j;
 
 u32 scrollpos=0;
 u32 scrollposcounter=0;
@@ -131,12 +138,98 @@ int main(int _argc, char **_argv)
 		}
 		if(!PlayMode)
 		{
+#ifdef SNDSYS_DEBUG
+			message_pointer = 0;	//Ignore any incoming debug messages.
+#endif
 			if(SSEQMode)
 				ShowSSEQ();
 			else
 				ShowDIR();
 		}
 		swiWaitForVBlank();
+#ifdef SNDSYS_DEBUG
+		if(PlayMode)
+		{
+			j = message_pointer;
+			for(i=0;i<j;i+=6)
+			{
+				if(message_data[i])
+				{
+					/*
+					iprintf("cmd = %.2X:%.2X",message_data[i+1],message_data[i+2]);
+					if(message_data[i]==3)
+						iprintf(":%.2X\n",message_data[i+3]);
+					else
+						iprintf("\n");*/
+					iprintf("%X:",message_data[i+5]);
+					switch (message_data[i+1])
+					{
+						
+						case 0x00:
+							iprintf(" Unrecognized record: %d\n",message_data[i+2]);
+							break;
+						case 0x01:
+							iprintf(" SEQUENCE HAS NO TRACKS\n");
+							break;
+						case 0x94: // JUMP
+							iprintf("94     POSITION JUMP:\n");
+							break;
+						case 0xC3: // TRANSPOSE
+							iprintf("C3         TRANSPOSE: %.2X\n",message_data[i+2]);
+							break;
+						case 0xC8: // TIE
+							iprintf("C8               TIE: %.2X\n",message_data[i+2]);
+							break;
+						case 0xC9: // PORTAMENTO
+							iprintf("C9        PORTAMENTO: %.2X\n",message_data[i+2]);
+							break;
+						case 0xCA: // MODULATION DEPTH
+							iprintf("CA  MODULATION DEPTH: %.2X\n",message_data[i+2]);
+							break;
+						case 0xCB: // MODULATION SPEED
+							iprintf("CB  MODULATION SPEED: %.2X\n",message_data[i+2]);
+							break;
+						case 0xCC: // MODULATION TYPE
+							iprintf("CC   MODULATION TYPE: %.2X\n",message_data[i+2]);
+							break;
+						case 0xCD: // MODULATION RANGE
+							iprintf("CD  MODULATION RANGE: %.2X\n",message_data[i+2]);
+							break;
+						case 0xCE: // PORTAMENTO ON/OFF
+							iprintf("CE PORTAMENTO ON/OFF: %.2X\n",message_data[i+2]);
+							break;
+						case 0xCF: // PORTAMENTO TIME
+							iprintf("CF   PORTAMENTO TIME: %.2X\n",message_data[i+2]);
+							break;
+						case 0xD4: //LOOP START
+							iprintf("D4        LOOP START: %d\n",message_data[i+2]);
+							break;
+						case 0xD6: // PRINT VAR
+							iprintf("D6         PRINT VAR: %.2X\n",message_data[i+2]);
+							break;
+							
+						case 0xE0: // MODULATION DELAY
+							iprintf("E0  MODULATION DELAY: %.2X %.2X\n",message_data[i+2],message_data[i+3]);
+							break;
+						case 0xE3: // SWEEP PITCH
+							iprintf("E3       SWEEP PITCH: %.2X %.2X\n",message_data[i+2],message_data[i+3]);
+							break;
+						case 0xFC:
+							iprintf("FC          LOOP END:\n");
+							break;
+						case 0xFF:
+							iprintf("FF      END OF TRACK:\n");
+							break;
+						default:
+							iprintf("%.2X  Unrecognized cmd: %.2X %.2X %.2X",message_data[i+1],message_data[i+2],message_data[i+3],message_data[i+4]);
+							break;
+							
+					}
+				}
+			}
+			message_pointer -= j;
+		}
+#endif
 		scanKeys();
 		if (keysDown() & KEY_A)
 		{
@@ -506,8 +599,6 @@ void ReadSPS()
 {
 	consoleClear();
 	
-	u32 j;
-	
 	FILE* f = fopen(CurrentSPS, "rb");
 	if(!f)
 	{
@@ -530,13 +621,13 @@ void ReadSPS()
 	swiWaitForVBlank();
 	fread(CurrentNDS, 1, CharCount, f);
 	CurrentNDS[CharCount] = 0;
-	fclose(f);
+	//fclose(f);
 	
-	f = fopen(CurrentNDS, "rb");
+	FILE *g = fopen(CurrentNDS, "rb");
 
 	iprintf("Checking NDS path.\n");
 	swiWaitForVBlank();
-	if(!f)
+	if(!g)
 	{
 		iprintf("%s\n", CurrentNDS);
 		iprintf("ROM not in specified location.\nPlease run SPS Maker.");
@@ -553,9 +644,9 @@ void ReadSPS()
 		iprintf("NDS path valid.\n");
 		swiWaitForVBlank();
 	}
-	fclose(f);
+	//fclose(f);
 
-	f = fopen(CurrentSPS, "rb");
+	//f = fopen(CurrentSPS, "rb");
 	
 	//Reads SSEQCount
 	fseek(f, 0, SEEK_SET);
@@ -592,6 +683,23 @@ void ReadSPS()
 			continue;
 			
 		}
+		fseek(g, SSEQOffset+24, SEEK_SET);
+		u32 fileoffset;
+		fread(&fileoffset,1,4,g);
+		fseek(g, SSEQOffset+fileoffset, SEEK_SET);
+		if(fgetc(g) != 0xFE)
+		{
+			i--;
+			j++;
+			CharCount = fgetc(f);
+			while(CharCount>0)
+			{
+				CharCount--;
+				fgetc(f);
+			}
+			continue;
+		}
+		
 		SSEQListOffset[i] = i+j;
 		if (SSEQList[i] != NULL)
 		{
@@ -610,6 +718,7 @@ void ReadSPS()
 	CurrentSSEQ = 0;
 	SSEQMode = true;
 	fclose(f);
+	fclose(g);
 	ShowSSEQ();
 }
 
@@ -675,68 +784,68 @@ void ReadSSEQ()
 
 	//Reads SSEQDataOffset
 	fseek(f, 0x08, SEEK_SET);
-	iprintf("Reading SSEQ data offset.\n");
+	//iprintf("Reading SSEQ data offset.\n");
 	//swiWaitForVBlank();
 	fread(&SSEQDataOffset, 1, 4, f);
 
 	//Reads SSEQ offset
 	fseek(f, SSEQDataOffset + (SSEQListOffset[CurrentSSEQ] * 48), SEEK_SET);
-	iprintf("Reading SSEQ offset.\n");
+	//iprintf("Reading SSEQ offset.\n");
 	//swiWaitForVBlank();
 	fread(&SSEQOffset, 1, 4, f);
 
 	//Reads SSEQ size
-	iprintf("Reading SSEQ size.\n");
+	//iprintf("Reading SSEQ size.\n");
 	//swiWaitForVBlank();
 	fread(&SSEQSize, 1, 4, f);
 
 	//Reads BANK offset
-	iprintf("Reading BANK offset.\n");
+	//iprintf("Reading BANK offset.\n");
 	//swiWaitForVBlank();
 	fread(&BANKOffset, 1, 4, f);
 
 	//Reads BANK size
-	iprintf("Reading BANK size.\n");
+	//iprintf("Reading BANK size.\n");
 	//swiWaitForVBlank();
 	fread(&BANKSize, 1, 4, f);
 
 	//Reads WAVEARC1 offset
-	iprintf("Reading WAVEARC1 offset.\n");
+	//iprintf("Reading WAVEARC1 offset.\n");
 	//swiWaitForVBlank();
 	fread(&WAVEARC1Offset, 1, 4, f);
 
 	//Reads WAVEARC1 size
-	iprintf("Reading WAVEARC1 size.\n");
+	//iprintf("Reading WAVEARC1 size.\n");
 	//swiWaitForVBlank();
 	fread(&WAVEARC1Size, 1, 4, f);
 
 	//Reads WAVEARC2 offset
-	iprintf("Reading WAVEARC2 offset.\n");
+	//iprintf("Reading WAVEARC2 offset.\n");
 	//swiWaitForVBlank();
 	fread(&WAVEARC2Offset, 1, 4, f);
 
 	//Reads WAVEARC2 size
-	iprintf("Reading WAVEARC2 size.\n");
+	//iprintf("Reading WAVEARC2 size.\n");
 	//swiWaitForVBlank();
 	fread(&WAVEARC2Size, 1, 4, f);
 
 	//Reads WAVEARC3 offset
-	iprintf("Reading WAVEARC3 offset.\n");
+	//iprintf("Reading WAVEARC3 offset.\n");
 	//swiWaitForVBlank();
 	fread(&WAVEARC3Offset, 1, 4, f);
 
 	//Reads WAVEARC3 size
-	iprintf("Reading WAVEARC3 size.\n");
+	//iprintf("Reading WAVEARC3 size.\n");
 	//swiWaitForVBlank();
 	fread(&WAVEARC3Size, 1, 4, f);
 
 	//Reads WAVEARC4 offset
-	iprintf("Reading WAVEARC4 offset.\n");
+	//iprintf("Reading WAVEARC4 offset.\n");
 	//swiWaitForVBlank();
 	fread(&WAVEARC4Offset, 1, 4, f);
 
 	//Reads WAVEARC4 size
-	iprintf("Reading WAVEARC4 size.\n");
+	//iprintf("Reading WAVEARC4 size.\n");
 	//swiWaitForVBlank();
 	fread(&WAVEARC4Size, 1, 4, f);
 
@@ -748,11 +857,11 @@ void ReadSSEQ()
 	{
 		
 		
-		if((SSEQSize + BANKSize + WAVEARC1Size + WAVEARC2Size + WAVEARC3Size + WAVEARC4Size) > 3800000)
+		if((SSEQSize + BANKSize + WAVEARC1Size + WAVEARC2Size + WAVEARC3Size + WAVEARC4Size) > Max_RAM)
 		{
 			iprintf("%s is not currently playable.\n", SSEQList[CurrentSSEQ]);
 			iprintf("Data size exceeds Ram size\n");
-			iprintf("Available Ram = 3800000\n");
+			iprintf("Available Ram = %d\n", Max_RAM);
 			iprintf("Data size = %d\n",(SSEQSize + BANKSize + WAVEARC1Size + WAVEARC2Size + WAVEARC3Size + WAVEARC4Size));
 			while(!(keysDown() & KEY_B))
 			{
