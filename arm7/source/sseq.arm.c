@@ -179,6 +179,7 @@ typedef struct
 	int a,d,s,r;
 	int loopcount,looppos;
 	int track_ended;
+	int track_looped;
 } trackstat_t;
 
 int ntracks = 0;
@@ -209,7 +210,7 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 		msg.count=2;
 		msg.data[0] = 0;
 		msg.data[1] = fRecord;
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
 		return -1;
 	}
@@ -261,7 +262,7 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 		msg.count=2;
 		msg.data[0] = 0;
 		msg.data[1] = fRecord;
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
 		return -1;
 	}
@@ -308,6 +309,8 @@ void _NoteStop(int n)
 #define SEQ_READ16(pos) ((u16)seqData[(pos)] | ((u16)seqData[(pos)+1] << 8))
 #define SEQ_READ24(pos) ((u32)seqData[(pos)] | ((u32)seqData[(pos)+1] << 8) | ((u32)seqData[(pos)+2] << 16))
 
+int message_send_flag=0;
+
 void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 {
 #ifdef SNDSYS_DEBUG
@@ -345,7 +348,7 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 #ifdef SNDSYS_DEBUG
 		msg.count=3;
 		msg.data[0] = 0x03;
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
 	}
 	else
@@ -353,7 +356,7 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 #ifdef SNDSYS_DEBUG
 		msg.count=4;
 		msg.data[0] = 0x04;
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
 		pos = 3;
 	}
@@ -364,7 +367,7 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 		msg.count=5;
 		msg.data[0] = 5;
 		msg.data[1] = i;
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
 		memset(tracks + i, 0, sizeof(trackstat_t));
 		tracks[i].pos = SEQ_READ24(pos); pos += 3;
@@ -375,6 +378,8 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 		tracks[i].playinfo.pitchb = 0;
 		tracks[i].playinfo.pitchr = 2;
 		tracks[i].prio = 64;
+		tracks[i].track_looped = 0;
+		tracks[i].track_ended = 0;
 		tracks[i].a = -1; tracks[i].d = -1; tracks[i].s = -1; tracks[i].r = -1;
 	}
 
@@ -383,7 +388,7 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 		msg.count=5;
 		msg.data[0] = 5;
 		msg.data[1] = 0;
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
 	memset(tracks + 0, 0, sizeof(trackstat_t));
 	tracks[0].pos = pos;
@@ -394,12 +399,16 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 	tracks[0].playinfo.pitchb = 0;
 	tracks[0].playinfo.pitchr = 2;
 	tracks[0].prio = 64;
+	tracks[0].track_looped = 0;
+	tracks[0].track_ended = 0;
 	tracks[0].a = -1; tracks[0].d = -1; tracks[0].s = -1; tracks[0].r = -1;
 	seq_bpm = 120;
+	message_send_flag = 0;
 }
 
 void StopSeq()
 {
+	returnMsg msg;
 	seq_bpm=0; //stop sound_timer
 	//v=0;
 
@@ -411,6 +420,11 @@ void StopSeq()
 		chstat->track = -1;
 		SCHANNEL_CR(i) = 0;
 	}
+#ifdef SNDSYS_DEBUG
+		msg.count=1;
+		msg.data[0] = 6;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
 }
 
 volatile int seq_bpm = 0;
@@ -420,6 +434,8 @@ void track_tick(int n);
 void seq_tick()
 {
 	int i;
+	int looped_twice=0;
+	int ended=0;
 #ifdef LOG_SEQ
 	nocashMessage("Tick!");
 #endif
@@ -436,7 +452,43 @@ void seq_tick()
 	}
 
 	for (i = 0; i < ntracks; i ++)
+	{
 		track_tick(i);
+		if(tracks[i].track_looped >= 2)
+			looped_twice++;
+		if(tracks[i].track_ended > 0)
+			ended++;
+	}
+#ifdef SNDSYS_DEBUG
+	returnMsg msg;
+	if(!message_send_flag)
+	{
+		if(looped_twice == ntracks)
+		{
+			message_send_flag = 1;
+			msg.count = 1;
+			msg.data[0] = 7;
+			fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+			return;
+		}
+		if(ended == ntracks)
+		{
+			message_send_flag = 1;
+			msg.count = 1;
+			msg.data[0] = 8;
+			fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+			return;
+		}
+		if((looped_twice + ended) >= ntracks)
+		{
+			message_send_flag = 1;
+			msg.count = 1;
+			msg.data[0] = 7;
+			fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+			return;
+		}
+	}
+#endif
 }
 
 int read_vl(int* pos)
@@ -547,6 +599,8 @@ void track_tick(int n)
 				msg.count=1;
 				msg.data[0] = cmd;
 #endif
+				if(track->pos > SEQ_READ24(track->pos))
+					track->track_looped++;
 				track->pos = SEQ_READ24(track->pos);
 				break;
 			}
@@ -610,7 +664,7 @@ void track_tick(int n)
 				nocashMessage("DUMMY1");
 #endif
 #ifdef SNDSYS_DEBUG
-				msg.count=2;
+				//msg.count=2;
 				msg.data[0] = cmd;
 				msg.data[1] = SEQ_READ8(track->pos); track->pos++;
 #else
@@ -716,6 +770,8 @@ void track_tick(int n)
 					shouldRepeat = --track->loopcount;
 				if (shouldRepeat)
 					track->pos = track->looppos;
+				if((shouldRepeat == 1) && (track->loopcount == 0))
+					track->track_looped++;
 				break;
 			}
 			case 0xD5: // EXPR
@@ -735,7 +791,7 @@ void track_tick(int n)
 				nocashMessage("DUMMY2");
 #endif
 #ifdef SNDSYS_DEBUG
-				msg.count=3;
+				//msg.count=3;
 				msg.data[0] = cmd;
 				msg.data[1] = SEQ_READ8(track->pos); track->pos++;
 				msg.data[2] = SEQ_READ8(track->pos); track->pos++;
@@ -769,7 +825,7 @@ void track_tick(int n)
 				track->pos --;
 				return;
 			}
-			default:
+			/*default:
 			{
 #ifdef SNDSYS_DEBUG
 				msg.count=3;
@@ -779,7 +835,7 @@ void track_tick(int n)
 				msg.data[3] = SEQ_READ8(track->pos+2);
 #endif
 				break;
-			}
+			}*/
 		}
 #ifdef SNDSYS_DEBUG
 		if(msg.count)

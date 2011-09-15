@@ -159,6 +159,13 @@ void StopSeq()
 	fifoSendDatamsg(FIFO_SNDSYS, sizeof(msg), (u8*) &msg);
 }
 
+void FadeSeq()
+{
+	sndsysMsg msg;
+	msg.msg = SNDSYS_FADESEQ;
+	fifoSendDatamsg(FIFO_SNDSYS, sizeof(msg), (u8*) &msg);
+}
+
 void PlaySeqNDS(const char* ndsFile, const u32 SSEQOffset, const u32 SSEQSize, const u32 BANKOffset, const u32 BANKSize, const u32 WAVEARC1Offset, const u32 WAVEARC1Size, const u32 WAVEARC2Offset, const u32 WAVEARC2Size, const u32 WAVEARC3Offset, const u32 WAVEARC3Size, const u32 WAVEARC4Offset, const u32 WAVEARC4Size)
 {
 	StopSeq();

@@ -46,6 +46,7 @@ u32 SSEQListOffset[5000];
 
 bool SSEQMode = false;
 bool PlayMode = false;
+bool AutoPlay = false;
 
 u32 SSEQOffset;
 u32 BANKOffset;
@@ -161,29 +162,56 @@ int main(int _argc, char **_argv)
 						iprintf(":%.2X\n",message_data[i+3]);
 					else
 						iprintf("\n");*/
-					iprintf("%X:",message_data[i+5]);
 					switch (message_data[i+1])
 					{
 						
-						case 0x00:
+						/*case 0x00:
 							iprintf("00 Unrecognized record: %d\n",message_data[i+2]);
 							break;
-						case 0x01:
-							iprintf("01 SEQUENCE HAS NO TRACKS\n");
-							break;
-						case 0x02:
-							iprintf("02 TRACK-TICK %.2X%.2X\n",message_data[i+3],message_data[i+2]);
-							break;
 						case 0x04:
+							iprintf("%X:",message_data[i+5]);
 							iprintf("04 SEQUENCE IS MULTI-TRACK\n");
 							break;
 						case 0x03:
+							iprintf("%X:",message_data[i+5]);
 							iprintf("03 SEQUENCE IS SINGLE-TRACK\n");
 							break;
 						case 0x05:
+							iprintf("%X:",message_data[i+5]);
 							iprintf("05 CREATED TRACK %d\n",message_data[i+2]);
+							break;*/
+						case 0x06:
+							if(PlayMode && AutoPlay)
+							{
+								if(CurrentSSEQ < SSEQCount - 1)
+			                    {
+			                      CurrentSSEQ++;
+			                      ReadSSEQ();
+			                    }
+			                    iprintf("06 SEQUENCE STOPPED\n");
+							}
 							break;
-						case 0x94: // JUMP
+						case 0x07:
+							if(PlayMode && AutoPlay)
+							{
+								iprintf("07 Track has looped twice\n");
+								FadeSeq();
+							}
+							break;
+						case 0x08:
+							
+							if(PlayMode && AutoPlay)
+							{
+								iprintf("08 Track has ended\n");
+								if(CurrentSSEQ < SSEQCount - 1)
+			                    {
+			                      CurrentSSEQ++;
+			                      ReadSSEQ();
+			                    }
+							}
+							break;
+						/*case 0x94: // JUMP
+							iprintf("%X:",message_data[i+5]);
 							iprintf("94     POSITION JUMP:\n");
 							break;
 						case 0xC3: // TRANSPOSE
@@ -214,6 +242,7 @@ int main(int _argc, char **_argv)
 							iprintf("CF   PORTAMENTO TIME: %.2X\n",message_data[i+2]);
 							break;
 						case 0xD4: //LOOP START
+							iprintf("%X:",message_data[i+5]);
 							iprintf("D4        LOOP START: %d\n",message_data[i+2]);
 							break;
 						case 0xD6: // PRINT VAR
@@ -227,14 +256,16 @@ int main(int _argc, char **_argv)
 							iprintf("E3       SWEEP PITCH: %.2X %.2X\n",message_data[i+2],message_data[i+3]);
 							break;
 						case 0xFC:
+							iprintf("%X:",message_data[i+5]);
 							iprintf("FC          LOOP END:\n");
 							break;
 						case 0xFF:
+							iprintf("%X:",message_data[i+5]);
 							iprintf("FF      END OF TRACK:\n");
-							break;
-						default:
+							break;*/
+						/*default:
 							iprintf("%.2X  Unrecognized cmd: %.2X %.2X %.2X",message_data[i+1],message_data[i+2],message_data[i+3],message_data[i+4]);
-							break;
+							break;*/
 							
 					}
 				}
@@ -297,6 +328,22 @@ int main(int _argc, char **_argv)
 		if (keysDown() & KEY_X)
 		{
 			StopSeq();
+		}
+		if (keysDown() & KEY_Y)
+		{
+			FadeSeq();
+		}
+		
+		if(keysDown() & KEY_SELECT)
+		{
+			AutoPlay = !AutoPlay;
+			if(PlayMode)
+			{
+				if(AutoPlay)
+					iprintf("Auto Play enabled\n");
+				else
+					iprintf("Auto Play disabled\n");
+			}
 		}
 
 		if (keysDown() & KEY_UP)
@@ -895,9 +942,23 @@ void ReadSSEQ()
 			PlaySeqNDS(CurrentNDS, SSEQOffset, SSEQSize, BANKOffset, BANKSize, WAVEARC1Offset, WAVEARC1Size, WAVEARC2Offset, WAVEARC2Size, WAVEARC3Offset, WAVEARC3Size, WAVEARC4Offset, WAVEARC4Size);
 			
 			iprintf("Playing %s.\n", SSEQList[CurrentSSEQ]);
+			if(AutoPlay)
+				iprintf("Auto Play enabled\n");
+			else
+				iprintf("Auto Play disabled\n");
 			//swiWaitForVBlank();
 			PlayMode = true;
 			SSEQMode = false;
+			swiWaitForVBlank();
+			for(i=0;i<message_pointer;i+=6)
+			{
+				if(message_data[i+1]==6)
+					message_data[i]=0;
+				if(message_data[i+1]==7)
+					message_data[i]=0;
+				if(message_data[i+1]==8)
+					message_data[i]=0;
+			}
 		}
 	}
 	else

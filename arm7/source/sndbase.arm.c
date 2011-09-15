@@ -6,6 +6,8 @@
 static void sound_timer();
 static void sndsysMsgHandler(int, void*);
 
+volatile int seq_status=STATUS_STOPPED;
+
 void InstallSoundSys()
 {
 	/* Power sound on */
@@ -261,12 +263,20 @@ _play_ret:
 		case SNDSYS_PLAYSEQ:
 		{
 			PlaySeq(&msg.seq, &msg.bnk, msg.war);
+			seq_status=STATUS_PLAYING;
+			return;
+		}
+		
+		case SNDSYS_FADESEQ:
+		{
+			seq_status=STATUS_FADING;
 			return;
 		}
 
 		case SNDSYS_STOPSEQ:
 		{
 			StopSeq();
+			seq_status=STATUS_STOPPED;
 			return;
 		}
 	}

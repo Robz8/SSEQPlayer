@@ -3,13 +3,18 @@
 #define FIFO_SNDSYS FIFO_USER_01
 #define FIFO_RETURN FIFO_USER_02
 
-//#define SNDSYS_DEBUG 1
+#define SNDSYS_DEBUG 1
 
 void InstallSoundSys();
 
 enum
 {
-	/*SNDSYS_PLAY = 1, SNDSYS_STOP,*/ SNDSYS_PLAYSEQ, SNDSYS_STOPSEQ
+	/*SNDSYS_PLAY = 1, SNDSYS_STOP,*/ SNDSYS_PLAYSEQ, SNDSYS_STOPSEQ, SNDSYS_FADESEQ
+};
+
+enum
+{
+	STATUS_PLAYING, STATUS_STOPPED, STATUS_FADING
 };
 
 typedef struct
@@ -93,6 +98,7 @@ typedef struct
 extern ADSR_stat_t ADSR_ch[16];
 
 volatile extern int seq_bpm;
+volatile extern int seq_status;
 
 volatile extern int ADSR_mastervolume;
 

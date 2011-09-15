@@ -54,6 +54,7 @@ void powerButtonCB() {
 
 //---------------------------------------------------------------------------------
 int main() {
+	u32 i=0;
 //---------------------------------------------------------------------------------
 	readUserSettings();
 
@@ -85,6 +86,20 @@ int main() {
 			exitflag = true;
 		}
 		swiWaitForVBlank();
+		if(seq_status==STATUS_FADING)
+		{
+			if(i<24)
+			{
+				i+=10;
+			}
+			else
+			{
+				i-=24;
+				ADSR_mastervolume--;
+				if(!ADSR_mastervolume)
+					StopSeq();
+			}
+		}
 	}
 	return 0;
 }
