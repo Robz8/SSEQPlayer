@@ -323,25 +323,49 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 	seqData = (u8*)seq->data + ((u32*)seq->data)[6];
 	ntracks = 0;
 
-	if (*seqData != 0xFE) {
+	/*if (*seqData != 0xFE) {
 #ifdef SNDSYS_DEBUG
 		msg.count=1;
 		msg.data[0] = 0x01;
 		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
 		return;
-	}
+	}*/
 	
-	int i, pos = 3;
+	int i, pos;
+	
 	ADSR_mastervolume = 127;	//Some tracks alter this, and may cause undesireable effects with playing other tracks later.
 	
 	/* Clear track-channel assignations */
 	for (i = 0; i < 16; i ++)
 		_NoteStop(i);
 	
+	if(*seqData != 0xFE) {
+		pos = 0;	//There is exactly one track in this sequence, which starts right at position 0.
+#ifdef SNDSYS_DEBUG
+		msg.count=3;
+		msg.data[0] = 0x03;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
+	}
+	else
+	{
+#ifdef SNDSYS_DEBUG
+		msg.count=4;
+		msg.data[0] = 0x04;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
+		pos = 3;
+	}
 	for (i = 1, ntracks = 1;; i ++, ntracks ++)
 	{
 		if (SEQ_READ8(pos) != 0x93) break; pos += 2;
+#ifdef SNDSYS_DEBUG
+		msg.count=5;
+		msg.data[0] = 5;
+		msg.data[1] = i;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
 		memset(tracks + i, 0, sizeof(trackstat_t));
 		tracks[i].pos = SEQ_READ24(pos); pos += 3;
 		tracks[i].playinfo.vol = 64;
@@ -355,6 +379,12 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 	}
 
 	// Prepare first track
+#ifdef SNDSYS_DEBUG
+		msg.count=5;
+		msg.data[0] = 5;
+		msg.data[1] = 0;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+#endif
 	memset(tracks + 0, 0, sizeof(trackstat_t));
 	tracks[0].pos = pos;
 	tracks[0].playinfo.vol = 64;
@@ -472,6 +502,10 @@ void track_tick(int n)
 #ifdef SNDSYS_DEBUG
 		msg.count = 0;
 		msg.channel = n;
+		msg.data[0] = cmd;
+		msg.data[1] = SEQ_READ8(track->pos);
+		msg.data[2] = SEQ_READ8(track->pos+1);
+		msg.data[3] = SEQ_READ8(track->pos+2);
 #endif
 		if (cmd < 0x80)
 		{

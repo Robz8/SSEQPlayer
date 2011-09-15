@@ -166,10 +166,22 @@ int main(int _argc, char **_argv)
 					{
 						
 						case 0x00:
-							iprintf(" Unrecognized record: %d\n",message_data[i+2]);
+							iprintf("00 Unrecognized record: %d\n",message_data[i+2]);
 							break;
 						case 0x01:
-							iprintf(" SEQUENCE HAS NO TRACKS\n");
+							iprintf("01 SEQUENCE HAS NO TRACKS\n");
+							break;
+						case 0x02:
+							iprintf("02 TRACK-TICK %.2X%.2X\n",message_data[i+3],message_data[i+2]);
+							break;
+						case 0x04:
+							iprintf("04 SEQUENCE IS MULTI-TRACK\n");
+							break;
+						case 0x03:
+							iprintf("03 SEQUENCE IS SINGLE-TRACK\n");
+							break;
+						case 0x05:
+							iprintf("05 CREATED TRACK %d\n",message_data[i+2]);
 							break;
 						case 0x94: // JUMP
 							iprintf("94     POSITION JUMP:\n");
@@ -683,7 +695,7 @@ void ReadSPS()
 			continue;
 			
 		}
-		fseek(g, SSEQOffset+24, SEEK_SET);
+		/*fseek(g, SSEQOffset+24, SEEK_SET);
 		u32 fileoffset;
 		fread(&fileoffset,1,4,g);
 		fseek(g, SSEQOffset+fileoffset, SEEK_SET);
@@ -698,7 +710,7 @@ void ReadSPS()
 				fgetc(f);
 			}
 			continue;
-		}
+		}*/
 		
 		SSEQListOffset[i] = i+j;
 		if (SSEQList[i] != NULL)
