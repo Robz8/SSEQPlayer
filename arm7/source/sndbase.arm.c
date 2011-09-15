@@ -6,6 +6,11 @@
 static void sound_timer();
 static void sndsysMsgHandler(int, void*);
 
+#define SEQ_STATUS_STOPPED 0
+#define SEQ_STATUS_STARTED 1
+#define SEQ_STATUS_PLAYING 2
+int seq_status = SEQ_STATUS_STOPPED;
+
 void InstallSoundSys()
 {
 	/* Power sound on */
@@ -31,6 +36,14 @@ static void ADSR_tick();
 static void sound_timer()
 {
 	static volatile int v = 0;
+	
+	if(seq_status==SEQ_STATUS_STOPPED)
+		v = 0;
+	if(seq_status==SEQ_STATUS_STARTED)
+	{
+		v = 0;
+		seq_status=SEQ_STATUS_PLAYING;
+	}
 
 	ADSR_tick();
 	
@@ -260,12 +273,14 @@ _play_ret:
 
 		case SNDSYS_PLAYSEQ:
 		{
+			seq_status=SEQ_STATUS_STARTED;
 			PlaySeq(&msg.seq, &msg.bnk, msg.war);
 			return;
 		}
 
 		case SNDSYS_STOPSEQ:
 		{
+			seq_status=SEQ_STATUS_STOPPED;
 			StopSeq();
 			return;
 		}
