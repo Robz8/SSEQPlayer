@@ -90,26 +90,34 @@ namespace SPS_Maker
                     if (SDATCount > 0)
                     {
                         UInt32 SSEQCount = 0;
-                        
-                        TempString = GameTitle;
 
-                        TempString = TempString.Replace('<', '_');
-                        TempString = TempString.Replace(':', '_');
-                        TempString = TempString.Replace('"', '_');
-                        TempString = TempString.Replace('/', '_');
-                        TempString = TempString.Replace('\\', '_');
-                        TempString = TempString.Replace('|', '_');
-                        TempString = TempString.Replace('?', '_');
-                        TempString = TempString.Replace('*', '_');
-                        TempString = TempString.Replace('>', '_');
+                        if (checkBox1.Checked == true)
+                        {
+                            TempString = Path.GetFileNameWithoutExtension(filePaths[i]);
+                        }
+                        else
+                        {
+                            TempString = GameTitle;
+
+                            TempString = TempString.Replace('<', '_');
+                            TempString = TempString.Replace(':', '_');
+                            TempString = TempString.Replace('"', '_');
+                            TempString = TempString.Replace('/', '_');
+                            TempString = TempString.Replace('\\', '_');
+                            TempString = TempString.Replace('|', '_');
+                            TempString = TempString.Replace('?', '_');
+                            TempString = TempString.Replace('*', '_');
+                            TempString = TempString.Replace('>', '_');
+                        }
 
                         FileStream fs2 = File.Create(Path.GetPathRoot(filePaths[i]) + "data\\NDS Music Player\\" + TempString + ".sps");
                         BinaryWriter bw = new BinaryWriter(fs2);
 
                         TempString = filePaths[i].Replace("\\", "/"); ;
                         bw.BaseStream.Position = 0xC;
-                        bw.BaseStream.WriteByte(Convert.ToByte(TempString.Length - 2));
-                        bw.BaseStream.Write(Encoding.ASCII.GetBytes(TempString), 2, filePaths[i].Length - 2);
+                        byte[] name = Encoding.UTF8.GetBytes(TempString);
+                        bw.BaseStream.WriteByte(Convert.ToByte(name.Length - 2));
+                        bw.BaseStream.Write(name, 2, name.Length - 2);
 
                         UInt32 NameOffset = (uint)bw.BaseStream.Position;
                         bw.BaseStream.Position = 0x4;
@@ -153,7 +161,24 @@ namespace SPS_Maker
                         if (SSEQCount == 0) //And if in ALL of the SDATS, there was absolutely no sequences, delete this SPS.
                         {
                             bw.Close();
-                            TempString = GameTitle;
+                            if (checkBox1.Checked == true)
+                            {
+                                TempString = Path.GetFileNameWithoutExtension(filePaths[i]);
+                            }
+                            else
+                            {
+                                TempString = GameTitle;
+
+                                TempString = TempString.Replace('<', '_');
+                                TempString = TempString.Replace(':', '_');
+                                TempString = TempString.Replace('"', '_');
+                                TempString = TempString.Replace('/', '_');
+                                TempString = TempString.Replace('\\', '_');
+                                TempString = TempString.Replace('|', '_');
+                                TempString = TempString.Replace('?', '_');
+                                TempString = TempString.Replace('*', '_');
+                                TempString = TempString.Replace('>', '_');
+                            }
                             File.Delete(Path.GetPathRoot(filePaths[i]) + "data\\NDS Music Player\\" + TempString + ".sps");
                             continue;
                         }
@@ -483,6 +508,18 @@ namespace SPS_Maker
                 }
                 MessageBox.Show("All SPS files have been successfully generated in\n" + Path.GetPathRoot(filePaths[0]) + "data\\NDS Music Player\\", "Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 Close();
+            }
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBox1.Checked == true)
+            {
+                label2.Text = "Original File Name";
+            }
+            else
+            {
+                label2.Text = "Rom Header Name";
             }
         }
     }
