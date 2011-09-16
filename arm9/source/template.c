@@ -345,6 +345,11 @@ int main(int _argc, char **_argv)
 					iprintf("Auto Play disabled\n");
 			}
 		}
+		
+		if(keysDown() & KEY_START)
+		{
+			PauseSeq();
+		}
 
 		if (keysDown() & KEY_UP)
 		{

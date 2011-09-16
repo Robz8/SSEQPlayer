@@ -159,6 +159,13 @@ void StopSeq()
 	fifoSendDatamsg(FIFO_SNDSYS, sizeof(msg), (u8*) &msg);
 }
 
+void PauseSeq()
+{
+	sndsysMsg msg;
+	msg.msg = SNDSYS_PAUSESEQ;
+	fifoSendDatamsg(FIFO_SNDSYS, sizeof(msg), (u8*) &msg);
+}
+
 void FadeSeq()
 {
 	sndsysMsg msg;

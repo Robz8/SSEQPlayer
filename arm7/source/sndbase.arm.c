@@ -7,6 +7,8 @@ static void sound_timer();
 static void sndsysMsgHandler(int, void*);
 
 volatile int seq_status=STATUS_STOPPED;
+volatile int cur_bpm;
+volatile int cur_vol;
 
 void InstallSoundSys()
 {
@@ -259,6 +261,24 @@ _play_ret:
 			return;
 		}
 		*/
+		case SNDSYS_PAUSESEQ:
+		{
+			if(seq_status == STATUS_PLAYING)
+			{
+				cur_bpm = seq_bpm;
+				seq_bpm = 0;
+				cur_vol = ADSR_mastervolume;
+				ADSR_mastervolume = 0;
+				seq_status = STATUS_PAUSED;
+			}
+			else if (seq_status == STATUS_PAUSED)
+			{
+				seq_bpm = cur_bpm;
+				ADSR_mastervolume = cur_vol;
+				seq_status = STATUS_PLAYING;
+			}
+			return;
+		}
 
 		case SNDSYS_PLAYSEQ:
 		{
