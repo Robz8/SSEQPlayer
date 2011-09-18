@@ -13,10 +13,8 @@ void ReadSPS();
 void ShowSSEQ();
 void ReadSSEQ();
 
-#ifdef SNDSYS_DEBUG
 extern volatile u8 message_data[];
 extern volatile u32 message_pointer;
-#endif
 
 char* DIRList[5000];
 char* CurrentNDS;
@@ -139,16 +137,13 @@ int main(int _argc, char **_argv)
 		}
 		if(!PlayMode)
 		{
-#ifdef SNDSYS_DEBUG
 			message_pointer = 0;	//Ignore any incoming debug messages.
-#endif
 			if(SSEQMode)
 				ShowSSEQ();
 			else
 				ShowDIR();
 		}
 		swiWaitForVBlank();
-#ifdef SNDSYS_DEBUG
 		if(PlayMode)
 		{
 			j = message_pointer;
@@ -156,16 +151,17 @@ int main(int _argc, char **_argv)
 			{
 				if(message_data[i])
 				{
-					/*
+#ifdef SNDSYS_DEBUG
 					iprintf("cmd = %.2X:%.2X",message_data[i+1],message_data[i+2]);
 					if(message_data[i]==3)
 						iprintf(":%.2X\n",message_data[i+3]);
 					else
-						iprintf("\n");*/
+						iprintf("\n");
+#endif
 					switch (message_data[i+1])
 					{
-						
-						/*case 0x00:
+#ifdef SNDSYS_DEBUG
+						case 0x00:
 							iprintf("00 Unrecognized record: %d\n",message_data[i+2]);
 							break;
 						case 0x04:
@@ -179,8 +175,11 @@ int main(int _argc, char **_argv)
 						case 0x05:
 							iprintf("%X:",message_data[i+5]);
 							iprintf("05 CREATED TRACK %d\n",message_data[i+2]);
-							break;*/
+							break;
+#endif
 						case 0x06:
+							if(PlayMode)
+								iprintf("06 SEQUENCE STOPPED\n");
 							if(PlayMode && AutoPlay)
 							{
 								if(CurrentSSEQ < SSEQCount - 1)
@@ -188,21 +187,22 @@ int main(int _argc, char **_argv)
 			                      CurrentSSEQ++;
 			                      ReadSSEQ();
 			                    }
-			                    iprintf("06 SEQUENCE STOPPED\n");
+			                    
 							}
 							break;
 						case 0x07:
+							if(PlayMode)
+								iprintf("07 Track has looped twice\n");
 							if(PlayMode && AutoPlay)
 							{
-								iprintf("07 Track has looped twice\n");
 								FadeSeq();
 							}
 							break;
 						case 0x08:
-							
+							if(PlayMode)
+								iprintf("08 Track has ended\n");
 							if(PlayMode && AutoPlay)
 							{
-								iprintf("08 Track has ended\n");
 								if(CurrentSSEQ < SSEQCount - 1)
 			                    {
 			                      CurrentSSEQ++;
@@ -210,7 +210,14 @@ int main(int _argc, char **_argv)
 			                    }
 							}
 							break;
-						/*case 0x94: // JUMP
+							
+						case 0xC2: // MASTER VOLUME
+							iprintf("%X:", message_data[i+5]);
+							iprintf("C2    MASTER VOLUME: %d\n", message_data[i+2]);
+							break;
+							
+#ifdef SNDSYS_DEBUG
+						case 0x94: // JUMP
 							iprintf("%X:",message_data[i+5]);
 							iprintf("94     POSITION JUMP:\n");
 							break;
@@ -262,17 +269,16 @@ int main(int _argc, char **_argv)
 						case 0xFF:
 							iprintf("%X:",message_data[i+5]);
 							iprintf("FF      END OF TRACK:\n");
-							break;*/
-						/*default:
+							break;
+						default:
 							iprintf("%.2X  Unrecognized cmd: %.2X %.2X %.2X",message_data[i+1],message_data[i+2],message_data[i+3],message_data[i+4]);
-							break;*/
-							
+							break;
+#endif
 					}
 				}
 			}
 			message_pointer -= j;
 		}
-#endif
 		scanKeys();
 		if (keysDown() & KEY_A)
 		{

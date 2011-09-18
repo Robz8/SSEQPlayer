@@ -3,7 +3,7 @@
 #define FIFO_SNDSYS FIFO_USER_01
 #define FIFO_RETURN FIFO_USER_02
 
-#define SNDSYS_DEBUG 1
+//#define SNDSYS_DEBUG 1
 
 void InstallSoundSys();
 
@@ -53,14 +53,12 @@ typedef struct
 	};
 } sndsysMsg;
 
-#ifdef SNDSYS_DEBUG
 typedef struct
 {
 	u8 count;
 	u8 data[4];
 	u8 channel;
 } returnMsg;
-#endif
 
 #define fifoRetWait(ch) while(!fifoCheckValue32(ch))
 #define fifoRetValue(ch) fifoGetValue32(ch)

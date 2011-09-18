@@ -311,100 +311,70 @@ void _NoteStop(int n)
 
 int message_send_flag=0;
 
-void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
+static inline void PrepareTrack(int i, int pos)
 {
 #ifdef SNDSYS_DEBUG
-	returnMsg msg;
+		returnMsg msg;
+		msg.count=5;
+		msg.data[0] = 5;
+		msg.data[1] = 0;
+		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
+	memset(tracks + i, 0, sizeof(trackstat_t));
+	tracks[i].pos = pos;
+	tracks[i].playinfo.vol = 64;
+	tracks[i].playinfo.vel = 64;
+	tracks[i].playinfo.expr = 127;
+	tracks[i].playinfo.pan = 64;
+	tracks[i].playinfo.pitchb = 0;
+	tracks[i].playinfo.pitchr = 2;
+	tracks[i].prio = 64;
+	tracks[i].track_looped = 0;
+	tracks[i].track_ended = 0;
+	tracks[i].a = -1; tracks[i].d = -1; tracks[i].s = -1; tracks[i].r = -1;
+}
+
+void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
+{
 	seqBnk = bnk->data;
 	seqWar[0] = war[0].data;
 	seqWar[1] = war[1].data;
 	seqWar[2] = war[2].data;
 	seqWar[3] = war[3].data;
-
+	
+	//Some tracks alter this, and may cause undesireable effects with playing other tracks later.
+	ADSR_mastervolume = 127;
+	
 	// Load sequence data
 	seqData = (u8*)seq->data + ((u32*)seq->data)[6];
-	ntracks = 0;
-
-	/*if (*seqData != 0xFE) {
+	ntracks = 1;
+	
+	int pos = 0;
+	
 #ifdef SNDSYS_DEBUG
-		msg.count=1;
-		msg.data[0] = 0x01;
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
-#endif
-		return;
-	}*/
-	
-	int i, pos;
-	
-	ADSR_mastervolume = 127;	//Some tracks alter this, and may cause undesireable effects with playing other tracks later.
-	
-	/* Clear track-channel assignations */
-	for (i = 0; i < 16; i ++)
-		_NoteStop(i);
-	
-	if(*seqData != 0xFE) {
-		pos = 0;	//There is exactly one track in this sequence, which starts right at position 0.
-#ifdef SNDSYS_DEBUG
-		msg.count=3;
+	returnMsg msg;
+	msg.count=3;
+	if (*seqData == 0xFE)
 		msg.data[0] = 0x03;
-		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
-#endif
-	}
 	else
-	{
-#ifdef SNDSYS_DEBUG
-		msg.count=4;
 		msg.data[0] = 0x04;
-		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
+	fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 #endif
-		pos = 3;
-	}
-	for (i = 1, ntracks = 1;; i ++, ntracks ++)
+
+	if (*seqData == 0xFE)
+	// Prepare extra tracks
+	for (pos = 3; SEQ_READ8(pos) == 0x93; ntracks ++, pos += 3)
 	{
-		if (SEQ_READ8(pos) != 0x93) break; pos += 2;
-#ifdef SNDSYS_DEBUG
-		msg.count=5;
-		msg.data[0] = 5;
-		msg.data[1] = i;
-		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
-#endif
-		memset(tracks + i, 0, sizeof(trackstat_t));
-		tracks[i].pos = SEQ_READ24(pos); pos += 3;
-		tracks[i].playinfo.vol = 64;
-		tracks[i].playinfo.vel = 64;
-		tracks[i].playinfo.expr = 127;
-		tracks[i].playinfo.pan = 64;
-		tracks[i].playinfo.pitchb = 0;
-		tracks[i].playinfo.pitchr = 2;
-		tracks[i].prio = 64;
-		tracks[i].track_looped = 0;
-		tracks[i].track_ended = 0;
-		tracks[i].a = -1; tracks[i].d = -1; tracks[i].s = -1; tracks[i].r = -1;
+		pos += 2;
+		PrepareTrack(ntracks, SEQ_READ24(pos));
 	}
 
 	// Prepare first track
-#ifdef SNDSYS_DEBUG
-		msg.count=5;
-		msg.data[0] = 5;
-		msg.data[1] = 0;
-		//fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
-#endif
-	memset(tracks + 0, 0, sizeof(trackstat_t));
-	tracks[0].pos = pos;
-	tracks[0].playinfo.vol = 64;
-	tracks[0].playinfo.vel = 64;
-	tracks[0].playinfo.expr = 127;
-	tracks[0].playinfo.pan = 64;
-	tracks[0].playinfo.pitchb = 0;
-	tracks[0].playinfo.pitchr = 2;
-	tracks[0].prio = 64;
-	tracks[0].track_looped = 0;
-	tracks[0].track_ended = 0;
-	tracks[0].a = -1; tracks[0].d = -1; tracks[0].s = -1; tracks[0].r = -1;
+	PrepareTrack(0, pos);
 	seq_bpm = 120;
 	message_send_flag = 0;
 }
+
 
 void StopSeq()
 {
@@ -420,11 +390,9 @@ void StopSeq()
 		chstat->track = -1;
 		SCHANNEL_CR(i) = 0;
 	}
-#ifdef SNDSYS_DEBUG
-		msg.count=1;
-		msg.data[0] = 6;
-		fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
-#endif
+	msg.count=1;
+	msg.data[0] = 6;
+	fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
 }
 
 volatile int seq_bpm = 0;
@@ -459,7 +427,6 @@ void seq_tick()
 		if(tracks[i].track_ended > 0)
 			ended++;
 	}
-#ifdef SNDSYS_DEBUG
 	returnMsg msg;
 	if(!message_send_flag)
 	{
@@ -488,7 +455,6 @@ void seq_tick()
 			return;
 		}
 	}
-#endif
 }
 
 int read_vl(int* pos)
@@ -529,9 +495,7 @@ void seq_updatepitchbend(int track, playinfo_t* info)
 
 void track_tick(int n)
 {
-#ifdef SNDSYS_DEBUG
 	returnMsg msg;
-#endif
 	trackstat_t* track = tracks + n;
 
 	if (track->count)
@@ -597,7 +561,6 @@ void track_tick(int n)
 #endif
 #ifdef SNDSYS_DEBUG
 				msg.count=1;
-				msg.data[0] = cmd;
 #endif
 				if(track->pos > SEQ_READ24(track->pos))
 					track->track_looped++;
@@ -646,6 +609,7 @@ void track_tick(int n)
 				nocashMessage("MASTER VOL");
 #endif
 				ADSR_mastervolume = SEQ_READ8(track->pos); track->pos ++;
+				msg.count=1;
 				break;
 			}
 			case 0xC3: // TRANSPOSE
@@ -664,12 +628,9 @@ void track_tick(int n)
 				nocashMessage("DUMMY1");
 #endif
 #ifdef SNDSYS_DEBUG
-				//msg.count=2;
-				msg.data[0] = cmd;
-				msg.data[1] = SEQ_READ8(track->pos); track->pos++;
-#else
-				track->pos ++;
+				msg.count=2;
 #endif
+				track->pos ++;
 				break;
 			}
 			case 0xC4: // PITCH BEND
@@ -747,8 +708,6 @@ void track_tick(int n)
 #endif
 #ifdef SNDSYS_DEBUG
 				msg.count=2;
-				msg.data[0] = cmd;
-				msg.data[1] = SEQ_READ8(track->pos);
 #endif
 				track->loopcount = SEQ_READ8(track->pos); track->pos ++;
 				track->looppos = track->pos;
@@ -763,7 +722,6 @@ void track_tick(int n)
 #endif
 #ifdef SNDSYS_DEBUG
 				msg.count=1;
-				msg.data[0] = cmd;
 #endif
 				int shouldRepeat = 1;
 				if (track->loopcount > 0)
@@ -791,13 +749,9 @@ void track_tick(int n)
 				nocashMessage("DUMMY2");
 #endif
 #ifdef SNDSYS_DEBUG
-				//msg.count=3;
-				msg.data[0] = cmd;
-				msg.data[1] = SEQ_READ8(track->pos); track->pos++;
-				msg.data[2] = SEQ_READ8(track->pos); track->pos++;
-#else
-				track->pos += 2;
+				msg.count=3;
 #endif
+				track->pos += 2;
 				break;
 			}
 			case 0xE1: // TEMPO
@@ -825,17 +779,17 @@ void track_tick(int n)
 				track->pos --;
 				return;
 			}
-			/*default:
-			{
 #ifdef SNDSYS_DEBUG
+			default:
+			{
 				msg.count=3;
 				msg.data[0] = cmd;
 				msg.data[1] = SEQ_READ8(track->pos);
 				msg.data[2] = SEQ_READ8(track->pos+1);
 				msg.data[3] = SEQ_READ8(track->pos+2);
-#endif
 				break;
-			}*/
+			}
+#endif
 		}
 #ifdef SNDSYS_DEBUG
 		if(msg.count)

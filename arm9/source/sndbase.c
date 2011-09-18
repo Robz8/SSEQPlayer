@@ -4,12 +4,10 @@
 #include <sndcommon.h>
 
 static void sndsysMsgHandler(int, void*);
-#ifdef SNDSYS_DEBUG
 static void returnMsgHandler(int, void*);
 #define MAX_MESSAGE_POINTER 1536
 volatile u8 message_data[MAX_MESSAGE_POINTER];
 volatile u32 message_pointer=0;
-#endif
 sndsysMsg curr_seq;
 u32 curr_seq_offset[6] = {0,0,0,0,0,0};
 u32 curr_seq_size[6] = {0,0,0,0,0,0};	//To save reloading stuff that is already loaded.
@@ -19,9 +17,7 @@ void InstallSoundSys()
 {
 	/* Install FIFO */
 	fifoSetDatamsgHandler(FIFO_SNDSYS, sndsysMsgHandler, 0);
-#ifdef SNDSYS_DEBUG
 	fifoSetDatamsgHandler(FIFO_RETURN, returnMsgHandler, 0);
-#endif
 }
 
 static void sndsysMsgHandler(int bytes, void* user_data)
@@ -32,34 +28,17 @@ static void sndsysMsgHandler(int bytes, void* user_data)
 	//iprintf("after, recv %d bytes\n",bytes);
 }
 
-#ifdef SNDSYS_DEBUG
 static void returnMsgHandler(int bytes, void* user_data)
 {
-	//iprintf("R before:");
-	fifoGetDatamsg(FIFO_RETURN, bytes, (u8*) &message_data[message_pointer]);
-	message_pointer+=bytes;
-	//iprintf("after, recv %d bytes\n",bytes);
-	//returnMsg msg;
-	//fifoGetDatamsg(FIFO_RETURN, bytes, (u8*) &msg);
-	/*if(msg.count)
+	returnMsg msg;
+	if((message_pointer + bytes) < MAX_MESSAGE_POINTER)
 	{
-		if(message_pointer < MAX_MESSAGE_POINTER)
-		{
-			message_data[message_pointer++]=msg.count;
-			message_data[message_pointer++]=msg.data[0];
-			message_data[message_pointer++]=msg.data[1];
-			message_data[message_pointer++]=msg.data[2];
-		}*/
-		//iprintf("cmd = %.2X:%.2X",msg.data[0],msg.data[1]);
-		//msg.count-=2;
-		/*if(msg.count)
-			iprintf(":%.2X\n",msg.data[2]);
-		else
-			iprintf("\n");*/
-		//msg.count=0;
-	//}
+		fifoGetDatamsg(FIFO_RETURN, bytes, (u8*) &message_data[message_pointer]);
+		message_pointer+=bytes;
+	}
+	else
+		fifoGetDatamsg(FIFO_RETURN, bytes, (u8*) &msg);	//Toss the overflowing message.
 }
-#endif
 
 
 void free_pdata(data_t* userdata)
