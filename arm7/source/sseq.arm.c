@@ -286,6 +286,20 @@ void _NoteStop(int n)
 #define SEQ_READ16(pos) ((u16)seqData[(pos)] | ((u16)seqData[(pos)+1] << 8))
 #define SEQ_READ24(pos) ((u32)seqData[(pos)] | ((u32)seqData[(pos)+1] << 8) | ((u32)seqData[(pos)+2] << 16))
 
+static inline void PrepareTrack(int i, int pos)
+{
+	memset(tracks + i, 0, sizeof(trackstat_t));
+	tracks[i].pos = pos;
+	tracks[i].playinfo.vol = 64;
+	tracks[i].playinfo.vel = 64;
+	tracks[i].playinfo.expr = 127;
+	tracks[i].playinfo.pan = 64;
+	tracks[i].playinfo.pitchb = 0;
+	tracks[i].playinfo.pitchr = 2;
+	tracks[i].prio = 64;
+	tracks[i].a = -1; tracks[i].d = -1; tracks[i].s = -1; tracks[i].r = -1;
+}
+
 void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 {
 	seqBnk = bnk->data;
@@ -296,36 +310,20 @@ void PlaySeq(data_t* seq, data_t* bnk, data_t* war)
 
 	// Load sequence data
 	seqData = (u8*)seq->data + ((u32*)seq->data)[6];
-	ntracks = 0;
+	ntracks = 1;
+	
+	int pos = 0;
 
-	if (*seqData != 0xFE) return;
-	int i, pos = 3;
-	for (i = 1, ntracks = 1;; i ++, ntracks ++)
+	if (*seqData == 0xFE)
+	// Prepare extra tracks
+	for (pos = 3; SEQ_READ8(pos) == 0x93; ntracks ++, pos += 3)
 	{
-		if (SEQ_READ8(pos) != 0x93) break; pos += 2;
-		memset(tracks + i, 0, sizeof(trackstat_t));
-		tracks[i].pos = SEQ_READ24(pos); pos += 3;
-		tracks[i].playinfo.vol = 64;
-		tracks[i].playinfo.vel = 64;
-		tracks[i].playinfo.expr = 127;
-		tracks[i].playinfo.pan = 64;
-		tracks[i].playinfo.pitchb = 0;
-		tracks[i].playinfo.pitchr = 2;
-		tracks[i].prio = 64;
-		tracks[i].a = -1; tracks[i].d = -1; tracks[i].s = -1; tracks[i].r = -1;
+		pos += 2;
+		PrepareTrack(ntracks, SEQ_READ24(pos));
 	}
 
 	// Prepare first track
-	memset(tracks + 0, 0, sizeof(trackstat_t));
-	tracks[0].pos = pos;
-	tracks[0].playinfo.vol = 64;
-	tracks[0].playinfo.vel = 64;
-	tracks[0].playinfo.expr = 127;
-	tracks[0].playinfo.pan = 64;
-	tracks[0].playinfo.pitchb = 0;
-	tracks[0].playinfo.pitchr = 2;
-	tracks[0].prio = 64;
-	tracks[0].a = -1; tracks[0].d = -1; tracks[0].s = -1; tracks[0].r = -1;
+	PrepareTrack(0, pos);
 	seq_bpm = 120;
 }
 
