@@ -515,14 +515,12 @@ void track_tick(int n)
 		siprintf(buf, "%02X-%08X-%X", cmd, (int)(seqData + oldpos), oldpos);
 		nocashMessage(buf);
 #endif
-#ifdef SNDSYS_DEBUG
 		msg.count = 0;
 		msg.channel = n;
 		msg.data[0] = cmd;
 		msg.data[1] = SEQ_READ8(track->pos);
 		msg.data[2] = SEQ_READ8(track->pos+1);
 		msg.data[3] = SEQ_READ8(track->pos+2);
-#endif
 		if (cmd < 0x80)
 		{
 #ifdef LOG_SEQ
@@ -601,6 +599,7 @@ void track_tick(int n)
 #endif
 				track->playinfo.vol = SEQ_READ8(track->pos); track->pos ++;
 				seq_updatenotes(n, &track->playinfo);
+				//msg.count=1;
 				break;
 			}
 			case 0xC2: // MASTER VOL
@@ -609,7 +608,7 @@ void track_tick(int n)
 				nocashMessage("MASTER VOL");
 #endif
 				ADSR_mastervolume = SEQ_READ8(track->pos); track->pos ++;
-				msg.count=1;
+				//msg.count=1;
 				break;
 			}
 			case 0xC3: // TRANSPOSE
@@ -791,10 +790,8 @@ void track_tick(int n)
 			}
 #endif
 		}
-#ifdef SNDSYS_DEBUG
 		if(msg.count)
 			fifoSendDatamsg(FIFO_RETURN, sizeof(msg), (u8*)&msg);
-#endif
 		
 	}
 }

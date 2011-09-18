@@ -211,6 +211,11 @@ int main(int _argc, char **_argv)
 							}
 							break;
 							
+						case 0xC1: // Track Volume
+							iprintf("%X:", message_data[i+5]);
+							iprintf("C1     Track Volume: %d\n", message_data[i+2]);
+							break;
+							
 						case 0xC2: // MASTER VOLUME
 							iprintf("%X:", message_data[i+5]);
 							iprintf("C2    MASTER VOLUME: %d\n", message_data[i+2]);
