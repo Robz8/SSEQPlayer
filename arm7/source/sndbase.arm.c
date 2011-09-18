@@ -34,7 +34,7 @@ static void sound_timer()
 
 	ADSR_tick();
 	
-	if (v > 240)
+	while (v > 240)
 		v -= 240, seq_tick();
 	v += seq_bpm;
 
