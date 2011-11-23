@@ -4,71 +4,46 @@
 #include <string.h>
 #include <sndcommon.h>
 
-#define ADJUST_FREQ(baseFreq,noteN,baseN) (((int)(baseFreq)*(int)freqTable[noteN])/(int)freqTable[baseN])
-
-static const u16 freqTable[128] = {
-	8, 9, 9, 10, 11, 11, 12, 13, 14, 15, 15,
-	16, 17, 18, 19, 21, 22, 23, 24, 26, 28, 29, 31,
-	33, 35, 37, 39, 41, 44, 46, 49, 52, 55, 58, 62,
-	65, 69, 73, 78, 83, 87, 92, 98, 104, 110, 117, 123,
-	131, 139, 147, 156, 165, 175, 185, 196, 208, 220, 233, 247,
-	262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494,
-	523, 554, 587, 622, 659, 698, 740, 784, 831, 880, 932, 988,
-	1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976,
-	2093, 2217, 2349, 2489, 2637, 2794, 2969, 3136, 3322, 3520, 3729, 3951,
-	4185, 4435, 4599, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902,
-	8372, 8870, 9397, 9956, 10548, 11175, 11840, 12544
-};
-
-static const u16 pitchBendTable[256] = {
-	0, 29, 59, 88, 118, 148, 177, 207,
-	237, 266, 296, 326, 355, 385, 415, 445,
-	474, 504, 534, 564, 594, 624, 653, 683,
-	713, 743, 773, 803, 833, 863, 893, 923,
-	953, 983, 1013, 1043, 1073, 1103, 1133, 1163,
-	1193, 1223, 1253, 1284, 1314, 1344, 1374, 1404,
-	1435, 1465, 1495, 1525, 1556, 1586, 1616, 1646,
-	1677, 1707, 1737, 1768, 1798, 1829, 1859, 1889,
-	1920, 1950, 1981, 2011, 2042, 2072, 2103, 2133,
-	2164, 2194, 2225, 2256, 2286, 2317, 2347, 2378,
-	2409, 2439, 2470, 2501, 2531, 2562, 2593, 2624,
-	2654, 2685, 2716, 2747, 2778, 2808, 2839, 2870,
-	2901, 2932, 2963, 2994, 3025, 3056, 3087, 3118,
-	3149, 3180, 3211, 3242, 3273, 3304, 3335, 3366,
-	3397, 3428, 3459, 3490, 3521, 3553, 3584, 3615,
-	3646, 3677, 3709, 3740, 3771, 3803, 3834, 3865,
-	61857, 61885, 61913, 61941, 61969, 61997, 62025, 62053,
-	62081, 62109, 62137, 62165, 62193, 62221, 62249, 62277,
-	62305, 62334, 62362, 62390, 62418, 62446, 62474, 62503,
-	62531, 62559, 62587, 62616, 62644, 62672, 62700, 62729,
-	62757, 62785, 62814, 62842, 62870, 62899, 62927, 62956,
-	62984, 63012, 63041, 63069, 63098, 63126, 63155, 63183,
-	63212, 63240, 63269, 63297, 63326, 63355, 63383, 63412,
-	63440, 63469, 63498, 63526, 63555, 63584, 63612, 63641,
-	63670, 63699, 63727, 63756, 63785, 63814, 63842, 63871,
-	63900, 63929, 63958, 63987, 64016, 64044, 64073, 64102,
-	64131, 64160, 64189, 64218, 64247, 64276, 64305, 64334,
-	64363, 64392, 64421, 64450, 64479, 64509, 64538, 64567,
-	64596, 64625, 64654, 64683, 64713, 64742, 64771, 64800,
-	64830, 64859, 64888, 64917, 64947, 64976, 65005, 65035,
-	65064, 65093, 65123, 65152, 65182, 65211, 65240, 65270,
-	65299, 65329, 65358, 65388, 65417, 65447, 65476, 65506
-};
-
-static inline int ADJUST_FREQ_2(int baseFreq, int noteN, int baseN, int pitchb, int pitchr)
+// This function was obtained through disassembly of Ninty's sound driver
+u16 AdjustFreq(u16 basefreq, int pitch)
 {
-	if (pitchb == 0) return ADJUST_FREQ(baseFreq, noteN, baseN);
-	else
+	u64 freq;
+	int shift = 0;
+	pitch = -pitch;
+	while (pitch < 0)
 	{
-		s64 freq = ADJUST_FREQ(baseFreq, noteN, baseN);
-		int i;
-		for (i = 0; i < pitchr; i ++)
-		{
-			freq *= (s64)pitchBendTable[(u8)pitchb] | (pitchb >= 0 ? 0x10000 : 0);
-			freq >>= 16;
-		}
-		return (int)freq;
+		shift --;
+		pitch += 0x300;
 	}
+	while (pitch >= 0x300)
+	{
+		shift ++;
+		pitch -= 0x300;
+	}
+	freq = (u64)basefreq * ((u32)swiGetPitchTable(pitch) + 0x10000);
+	shift -= 16;
+	if (shift <= 0)
+		freq >>= -shift;
+	else if (shift < 32)
+	{
+		if (freq & ((~0ULL) << (32-shift))) return 0xFFFF;
+		freq <<= shift;
+	}else
+		return 0x10;
+	if (freq < 0x10) return 0x10;
+	if (freq > 0xFFFF) return 0xFFFF;
+	return (u16)freq;
+}
+
+static inline u16 ADJUST_FREQ(u16 basefreq, int noteN, int baseN)
+{
+	return AdjustFreq(basefreq, ((noteN - baseN) * 64));
+}
+
+static inline u16 ADJUST_PITCH_BEND(u16 basefreq, int pitchb, int pitchr)
+{
+	if (!pitchb) return basefreq;
+	return AdjustFreq(basefreq, (pitchb*pitchr) >> 1);
 }
 
 // info about the sample
@@ -105,6 +80,8 @@ typedef struct
 {
 	u8 vol, vel, expr, pan, pitchr;
 	s8 pitchb;
+	u8 modType, modSpeed, modDepth, modRange;
+	u16 modDelay;
 } playinfo_t;
 
 typedef struct
@@ -205,6 +182,7 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 	notedef_t* notedef = NULL;
 	SWAVINFO* wavinfo = NULL;
 	int fRecord = INST_TYPE(inst);
+_ReadRecord:
 	if (fRecord == 0) {
 #ifdef SNDSYS_DEBUG
 		msg.count=2;
@@ -222,7 +200,6 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 		// fRecord = 3 -> PSG noise
 		isPsg = 1;
 		notedef = (notedef_t*) insdata;
-		int basefreq = freqTable[notedef->tnote-1]<<3; // It needs a -1 for some reason (??)
 		if (fRecord == 3)
 		{
 			ch = ds_freepsgnoisechn(prio);
@@ -237,17 +214,19 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 			chstat = ADSR_ch + ch;
 			chstat->reg.CR = SOUND_FORMAT_PSG | SCHANNEL_ENABLE | SOUND_DUTY(notedef->wavid);
 		}
-		chstat->reg.TIMER = SOUND_FREQ(ADJUST_FREQ_2(basefreq, note, notedef->tnote, playinfo->pitchb, playinfo->pitchr));
-		chstat->_freq = basefreq;
-		chstat->_noteR = note;
-		chstat->_noteT = notedef->tnote;
+		// TODO: figure out what notedef->tnote means for PSG channels
+		chstat->_freq = ADJUST_FREQ(-SOUND_FREQ(440*8), note, 69);
+		chstat->reg.TIMER = ADJUST_PITCH_BEND(chstat->_freq, playinfo->pitchb, playinfo->pitchr);
 	}
 	else if (fRecord == 16)
 	{
 		if ((insdata[0] <= note) && (note <= insdata[1]))
 		{
 			int rn = note - insdata[0];
-			notedef = (notedef_t*) (insdata + 2 + 2 + rn*(2+sizeof(notedef_t)));
+			int offset = 2 + rn*(2+sizeof(notedef_t));
+			fRecord = insdata[offset];
+			insdata += offset + 2;
+			goto _ReadRecord;
 		}else return -1;
 	}else if (fRecord == 17)
 	{
@@ -255,7 +234,11 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 		for(reg = 0; reg < 8; reg ++)
 			if (note <= insdata[reg]) break;
 		if (reg == 8) return -1;
-		notedef = (notedef_t*) (insdata + 8 + 2 + reg*(2+sizeof(notedef_t)));
+		
+		int offset = 8 + reg*(2+sizeof(notedef_t));
+		fRecord = insdata[offset];
+		insdata += offset + 2;
+		goto _ReadRecord;
 	}else 
 	{
 #ifdef SNDSYS_DEBUG
@@ -272,13 +255,10 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 		wavinfo = GetWav(war[notedef->warid], notedef->wavid);
 		chstat->reg.CR = SOUND_FORMAT(wavinfo->nWaveType) | SOUND_LOOP(wavinfo->bLoop) | SCHANNEL_ENABLE;
 		chstat->reg.SOURCE = (u32)GETSAMP(wavinfo);
-		chstat->reg.TIMER = SOUND_FREQ(ADJUST_FREQ_2((int)wavinfo->nSampleRate, note, notedef->tnote, playinfo->pitchb, playinfo->pitchr));
+		chstat->_freq = ADJUST_FREQ(wavinfo->nTime, note, notedef->tnote);
+		chstat->reg.TIMER = ADJUST_PITCH_BEND(chstat->_freq, playinfo->pitchb, playinfo->pitchr);
 		chstat->reg.REPEAT_POINT = wavinfo->nLoopOffset;
 		chstat->reg.LENGTH = wavinfo->nNonLoopLen;
-
-		chstat->_freq = (int)wavinfo->nSampleRate;
-		chstat->_noteR = note;
-		chstat->_noteT = notedef->tnote;
 	}
 
 	trackstat_t* pTrack = tracks + track;
@@ -288,6 +268,13 @@ int _Note(void* bnk, void** war, int instr, int note, int prio, playinfo_t* play
 	chstat->expr = playinfo->expr;
 	chstat->pan = playinfo->pan;
 	chstat->pan2 = notedef->pan;
+	chstat->modType = playinfo->modType;
+	chstat->modDepth = playinfo->modDepth;
+	chstat->modRange = playinfo->modRange;
+	chstat->modSpeed = playinfo->modSpeed;
+	chstat->modDelay = playinfo->modDelay;
+	chstat->modDelayCnt = 0;
+	chstat->modCounter = 0;
 	chstat->a = (pTrack->a == -1) ? CnvAttk(notedef->a) : pTrack->a;
 	chstat->d = (pTrack->d == -1) ? CnvFall(notedef->d) : pTrack->d;
 	chstat->s = (pTrack->s == -1) ? CnvSust(notedef->s) : pTrack->s;
@@ -328,6 +315,11 @@ static inline void PrepareTrack(int i, int pos)
 	tracks[i].playinfo.pan = 64;
 	tracks[i].playinfo.pitchb = 0;
 	tracks[i].playinfo.pitchr = 2;
+	tracks[i].playinfo.modType = 0;
+	tracks[i].playinfo.modDepth = 0;
+	tracks[i].playinfo.modRange = 1;
+	tracks[i].playinfo.modSpeed = 16;
+	tracks[i].playinfo.modDelay = 10;
 	tracks[i].prio = 64;
 	tracks[i].track_looped = 0;
 	tracks[i].track_ended = 0;
@@ -489,7 +481,22 @@ void seq_updatepitchbend(int track, playinfo_t* info)
 	{
 		ADSR_stat_t* chstat = ADSR_ch + i;
 		if (chstat->track != track) continue;
-		chstat->reg.TIMER = SOUND_FREQ(ADJUST_FREQ_2(chstat->_freq, chstat->_noteR, chstat->_noteT, info->pitchb, info->pitchr));
+		chstat->reg.TIMER = ADJUST_PITCH_BEND(chstat->_freq, info->pitchb, info->pitchr);
+	}
+}
+
+void seq_updatemodulation(int track, playinfo_t* info, int what)
+{
+	int i = 0;
+	for (i = 0; i < 16; i ++)
+	{
+		ADSR_stat_t* chstat = ADSR_ch + i;
+		if (chstat->track != track) continue;
+		if (what & BIT(0)) chstat->modDepth = info->modDepth;
+		if (what & BIT(1)) chstat->modSpeed = info->modSpeed;
+		if (what & BIT(2)) chstat->modType = info->modType;
+		if (what & BIT(3)) chstat->modRange = info->modRange;
+		if (what & BIT(4)) chstat->modDelay = info->modDelay;
 	}
 }
 
@@ -575,6 +582,45 @@ void track_tick(int n)
 				track->pos = dest;
 				break;
 			}
+			case 0xA0: // RANDOM
+			{
+				// TODO
+				// [statusByte] [min16] [max16]
+				track->pos += 5;
+				break;
+			}
+			case 0xA1: // WTF #1
+			{
+				// TODO
+				int t = SEQ_READ8(track->pos); track->pos ++;
+				if (t >= 0xB0 && t <= 0xBD) track->pos ++;
+				track->pos ++;
+				break;
+			}
+			case 0xA2: // IF
+			{
+				// TODO
+				break;
+			}
+			case 0xB0:
+			case 0xB1:
+			case 0xB2:
+			case 0xB3:
+			case 0xB4:
+			case 0xB5:
+			case 0xB6:
+			case 0xB7:
+			case 0xB8:
+			case 0xB9:
+			case 0xBA:
+			case 0xBB:
+			case 0xBC:
+			case 0xBD:
+			{
+				// TODO
+				track->pos += 3;
+				break;
+			}
 			case 0xFD: // RET
 			{
 #ifdef LOG_SEQ
@@ -614,10 +660,6 @@ void track_tick(int n)
 			case 0xC3: // TRANSPOSE
 			case 0xC8: // TIE
 			case 0xC9: // PORTAMENTO
-			case 0xCA: // MODULATION DEPTH
-			case 0xCB: // MODULATION SPEED
-			case 0xCC: // MODULATION TYPE
-			case 0xCD: // MODULATION RANGE
 			case 0xCE: // PORTAMENTO ON/OFF
 			case 0xCF: // PORTAMENTO TIME
 			case 0xD6: // PRINT VAR
@@ -666,6 +708,42 @@ void track_tick(int n)
 				nocashMessage("NOTEWAIT");
 #endif
 				track->waitmode = SEQ_READ8(track->pos); track->pos ++;
+				break;
+			}
+			case 0xCA: // MODULATION DEPTH
+			{
+#ifdef LOG_SEQ
+				nocashMessage("MODULATION DEPTH");
+#endif
+				track->playinfo.modDepth = SEQ_READ8(track->pos); track->pos ++;
+				seq_updatemodulation(n, &track->playinfo, BIT(0));
+				break;
+			}
+			case 0xCB: // MODULATION SPEED
+			{
+#ifdef LOG_SEQ
+				nocashMessage("MODULATION SPEED");
+#endif
+				track->playinfo.modSpeed = SEQ_READ8(track->pos); track->pos ++;
+				seq_updatemodulation(n, &track->playinfo, BIT(1));
+				break;
+			}
+			case 0xCC: // MODULATION TYPE
+			{
+#ifdef LOG_SEQ
+				nocashMessage("MODULATION TYPE");
+#endif
+				track->playinfo.modType = SEQ_READ8(track->pos); track->pos ++;
+				seq_updatemodulation(n, &track->playinfo, BIT(2));
+				break;
+			}
+			case 0xCD: // MODULATION RANGE
+			{
+#ifdef LOG_SEQ
+				nocashMessage("MODULATION RANGE");
+#endif
+				track->playinfo.modRange = SEQ_READ8(track->pos); track->pos ++;
+				seq_updatemodulation(n, &track->playinfo, BIT(3));
 				break;
 			}
 			case 0xD0: // ATTACK
@@ -741,6 +819,14 @@ void track_tick(int n)
 				break;
 			}
 			case 0xE0: // MODULATION DELAY
+			{
+#ifdef LOG_SEQ
+				nocashMessage("MODULATION DELAY");
+#endif
+				track->playinfo.modDelay = SEQ_READ16(track->pos); track->pos += 2;
+				seq_updatemodulation(n, &track->playinfo, BIT(4));
+				break;
+			}
 			case 0xE3: // SWEEP PITCH
 			{
 				// TODO

@@ -93,7 +93,7 @@ static void ADSR_tickchn(int ch)
 		case ADSR_START:
 			SCHANNEL_CR(ch) = 0;
 			SCHANNEL_SOURCE(ch) = REG.SOURCE;
-			SCHANNEL_TIMER(ch) = REG.TIMER;
+			SCHANNEL_TIMER(ch) = -REG.TIMER;
 			SCHANNEL_REPEAT_POINT(ch) = REG.REPEAT_POINT;
 			SCHANNEL_LENGTH(ch) = REG.LENGTH;
 			SCHANNEL_CR(ch) = REG.CR;
@@ -122,6 +122,37 @@ static void ADSR_tickchn(int ch)
 			break;
 	}
 
+	// Update the modulation params
+	int modParam = 0, modType = chstat->modType;
+	do
+	{
+		if (chstat->modDelayCnt < chstat->modDelay)
+		{
+			chstat->modDelayCnt ++;
+			break;
+		}
+
+		u16 speed = (u16)chstat->modSpeed << 6;
+		u16 counter = (chstat->modCounter + speed) >> 8;
+	
+		while (counter >= 0x80)
+			counter -= 0x80;
+	
+		chstat->modCounter += speed;
+		chstat->modCounter &= 0xFF;
+		chstat->modCounter |= counter << 8;
+
+		modParam = GetSoundSine(chstat->modCounter >> 8) * chstat->modRange * chstat->modDepth;
+	}while(0);
+
+	modParam >>= 8;
+
+#ifdef LOG_SEQ
+	char buf[30];
+	siprintf(buf, "%02X %02X %02X %02X %04X", chstat->modDepth, chstat->modSpeed, chstat->modType, chstat->modRange, chstat->modDelay);
+	nocashMessage(buf);
+#endif
+
 #define CONV_VOL(a) (CnvSust(a)>>7)
 #define SOUND_VOLDIV(n) ((n) << 8)
 
@@ -130,12 +161,18 @@ static void ADSR_tickchn(int ch)
 	totalvol += CONV_VOL(EXPR);
 	totalvol += CONV_VOL(VEL);
 	totalvol += AMPL >> 7;
+	if (modType == 1)
+	{
+		totalvol += modParam;
+		if (totalvol > 0) totalvol = 0;
+	}
 	totalvol += 723;
 	if (totalvol < 0) totalvol = 0;
 
 	u32 res = swiGetVolumeTable(totalvol);
 
 	int pan = (int)PAN + (int)PAN2 - 64;
+	if (modType == 2) pan += modParam;
 	if (pan < 0) pan = 0;
 	if (pan > 127) pan = 127;
 
@@ -146,7 +183,9 @@ static void ADSR_tickchn(int ch)
 	else if (totalvol < (-60 + 723)) cr |= SOUND_VOLDIV(1);
 	
 	SCHANNEL_CR(ch) = cr;
-	SCHANNEL_TIMER(ch) = REG.TIMER;
+	u16 timer = REG.TIMER;
+	if (modType == 0) timer = AdjustFreq(timer, modParam);
+	SCHANNEL_TIMER(ch) = -timer;
 
 #undef AMPL
 #undef VOL
@@ -220,6 +259,21 @@ int CnvSust(int sust)
 	};
 	
 	return (sust == 0x7F) ? 0 : -((0x10000-(int)lut[sust]) << 7);
+}
+
+int GetSoundSine(int arg)
+{
+	const int lut_size = 32;
+	const s8 lut[] =
+	{
+		0, 6, 12, 19, 25, 31, 37, 43, 49, 54, 60, 65, 71, 76, 81, 85, 90, 94,
+		98, 102, 106, 109, 112, 115, 117, 120, 122, 123, 125, 126, 126, 127, 127
+	};
+
+	if (arg < 1*lut_size) return  lut[arg];
+	if (arg < 2*lut_size) return  lut[2*lut_size - arg];
+	if (arg < 3*lut_size) return -lut[arg - 2*lut_size];
+	/*else*/              return -lut[4*lut_size - arg];
 }
 
 void sndsysMsgHandler(int bytes, void* user_data)
