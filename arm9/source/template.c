@@ -45,6 +45,7 @@ u32 SSEQListOffset[5000];
 bool SSEQMode = false;
 bool PlayMode = false;
 bool AutoPlay = false;
+bool ManualStop = false;
 
 u32 SSEQOffset;
 u32 BANKOffset;
@@ -180,7 +181,7 @@ int main(int _argc, char **_argv)
 						case 0x06:
 							if(PlayMode)
 								iprintf("06 SEQUENCE STOPPED\n");
-							if(PlayMode && AutoPlay)
+							if(PlayMode && AutoPlay && !ManualStop)
 							{
 								if(CurrentSSEQ < SSEQCount - 1)
 			                    {
@@ -189,6 +190,7 @@ int main(int _argc, char **_argv)
 			                    }
 			                    
 							}
+							ManualStop = false;
 							break;
 						case 0x07:
 							if(PlayMode)
@@ -338,10 +340,12 @@ int main(int _argc, char **_argv)
 		
 		if (keysDown() & KEY_X)
 		{
+			ManualStop = true;
 			StopSeq();
 		}
 		if (keysDown() & KEY_Y)
 		{
+			ManualStop = true;
 			FadeSeq();
 		}
 		
