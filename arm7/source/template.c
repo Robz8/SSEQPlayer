@@ -28,13 +28,11 @@
 
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
-#include <dswifi7.h>
 #include <sndcommon.h>
 
 //---------------------------------------------------------------------------------
 void VblankHandler(void) {
 //---------------------------------------------------------------------------------
-	Wifi_Update();
 }
 
 
@@ -68,7 +66,6 @@ int main() {
 
 	SetYtrigger(80);
 
-	installWifiFIFO();
 	installSoundFIFO();
 
 	installSystemFIFO();
@@ -76,7 +73,7 @@ int main() {
 	irqSet(IRQ_VCOUNT, VcountHandler);
 	irqSet(IRQ_VBLANK, VblankHandler);
 
-	irqEnable( IRQ_VBLANK | IRQ_VCOUNT | IRQ_NETWORK);
+	irqEnable( IRQ_VBLANK | IRQ_VCOUNT);
 	
 	setPowerButtonCB(powerButtonCB);   
 
