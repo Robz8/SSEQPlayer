@@ -30,9 +30,6 @@
 #include <nds.h>
 #include <sndcommon.h>
 
-bool dsiFix = false;
-int dsiFixDelay = 0;
-
 //---------------------------------------------------------------------------------
 void VblankHandler(void) {
 //---------------------------------------------------------------------------------
@@ -84,16 +81,6 @@ int main() {
 	while (!exitflag) {
 		if ( 0 == (REG_KEYINPUT & (KEY_SELECT | KEY_START | KEY_L | KEY_R))) {
 			exitflag = true;
-		}
-		if(dsiFixDelay > 0) {
-			dsiFixDelay++;
-			if(dsiFixDelay==60) dsiFixDelay = 0;
-		}
-		if ( 0 == (REG_KEYINPUT & (KEY_A))) {
-			if (dsiFixDelay==0) {
-				dsiFix = !dsiFix;
-				dsiFixDelay++;
-			}
 		}
 		swiWaitForVBlank();
 		if(seq_status==STATUS_FADING)

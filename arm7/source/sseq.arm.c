@@ -4,7 +4,12 @@
 #include <string.h>
 #include <sndcommon.h>
 
-extern bool dsiFix;
+u16 newGetPitchTable(u16 pitch) {
+	// A recreation of the swiGetPitchTable function, which is bugged with DSi BIOS set
+	pitch = pitch*0x4C;
+	if(pitch > 0xFF8A) pitch = 0xFF8A;
+	return pitch;
+}
 
 // This function was obtained through disassembly of Ninty's sound driver
 u16 AdjustFreq(u16 basefreq, int pitch)
@@ -22,14 +27,7 @@ u16 AdjustFreq(u16 basefreq, int pitch)
 		shift ++;
 		pitch -= 0x300;
 	}
-	if (dsiFix) {
-		// Source: gbatek
-		// BUG: DSi7 accidently reads from SineTable instead of PitchTable,
-		// as workaround for obtaining PitchTable values,
-		// one can set "r0=(0..2FFh)-46Ah" on DSi.
-		pitch -= 0x46A;
-	}
-	freq = (u64)basefreq * ((u32)swiGetPitchTable(pitch) + 0x10000);
+	freq = (u64)basefreq * ((u32)newGetPitchTable(pitch) + 0x10000);
 	shift -= 16;
 	if (shift <= 0)
 		freq >>= -shift;
