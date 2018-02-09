@@ -4,22 +4,19 @@ SSEQ Player
 Introduction
 ------------
 
-This is a homebrew player of Nintendo's SSEQ sequence format, used in commercial DS games.
+This is a homebrew player of Nintendo's SSEQ sequence format, used in commercial DS games.    
+This uses the pitch table extracted from the (DS mode) GetPitchTable SWI function for non-buggy sound playback for DSiWarehax users!
 
-How to build
+How to use
 ------------
 
-1. Place a sseq file, a sbnk file and a swar file in the fs folder
-2. Open arm9/source/template.c and edit the parameters to the PlaySeq call accordingly.
-3. Compile by using make.
-
-To do
------
-
-- Note dropping bug appears to be gone... I hope.
-- Some SSEQ commands are not implemented yet (modulation, portamento, pitch sweep): please help!
+1. Place NDS_Music_Player.nds anywhere on the SD card.
+2. Open SPS Maker, and select the folder with your .nds ROMs.
+3. When the .sps file are done being made, take out your SD card and put it in your Nintendo DSi.
+4. Launch the player with your DSi exploit.
 
 Thanks to:
 ----------
 
-- kiwids, for making the SDAT spec and for providing valuable information regarding volume mixing.
+- http://problemkaputt.de/gbatek.htm, for the documentation of the GetPitchTable SWI function.
+- fincs and CaitSith, for the original source code!
