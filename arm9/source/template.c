@@ -60,12 +60,28 @@ u32 WAVEARC2Size;
 u32 WAVEARC3Size;
 u32 WAVEARC4Size;
 
+bool backlightOn = true;
+void controlBacklight() {
+	if(backlightOn) {
+		powerOff(PM_BACKLIGHT_BOTTOM);
+	} else {
+		powerOn(PM_BACKLIGHT_BOTTOM);
+	}
+	backlightOn = !backlightOn;
+}
+
 int argc;
 char **argv;
 int main(int _argc, char **_argv)
 {
+	powerOff(PM_BACKLIGHT_TOP);
 	consoleDemoInit();
 	InstallSoundSys();
+	
+	REG_SCFG_EXT = 0x8307F100;
+	if(REG_SCFG_EXT == 0x8307F100) {
+		Max_RAM = 7800000;	// Increase RAM limit for DSi mode
+	}
 
 	argc=_argc; argv=_argv;
 	if(!fatInitDefault())
@@ -322,6 +338,7 @@ int main(int _argc, char **_argv)
 			{
 				PlayMode = false;
 				SSEQMode = true;
+				if(!backlightOn) controlBacklight();
 				ShowSSEQ();
 			}
 			else
@@ -404,6 +421,7 @@ int main(int _argc, char **_argv)
 		{
 			if(PlayMode)
 			{
+				controlBacklight();
 			}
 			else
 			{
